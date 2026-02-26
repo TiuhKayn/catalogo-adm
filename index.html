@@ -912,7 +912,21 @@
                 <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="filtrarProdutos()">
                 <select id="catFilter" onchange="filtrarProdutos()">
                     <option value="Todas">Todas categorias</option>
-                    <!-- Preenchido via JS -->
+                    <option value="Controle">Controle</option>
+                    <option value="Resfriadores">Resfriadores</option>
+                    <option value="Teclado">Teclado</option>
+                    <option value="Gabinete">Gabinete</option>
+                    <option value="Fonte">Fonte</option>
+                    <option value="Processador">Processador</option>
+                    <option value="Armazenamento">Armazenamento</option>
+                    <option value="Headset">Headset</option>
+                    <option value="Placa de Vídeo">Placa de Vídeo</option>
+                    <option value="Monitor">Monitor</option>
+                    <option value="Memória RAM">Memória RAM</option>
+                    <option value="Placa-mãe">Placa-mãe</option>
+                    <option value="Mouse">Mouse</option>
+                    <option value="Kit">Kit</option>
+                    <option value="Outros">Outros</option>
                 </select>
                 <select id="statusFilter" onchange="filtrarProdutos()">
                     <option value="Todos">Todos</option>
@@ -920,7 +934,9 @@
                     <option value="Vendidos">Vendidos</option>
                     <option value="Promocao">Em Promoção</option>
                 </select>
-                <button class="btn btn-blue" onclick="abrirViewCriacao()">+ Adicionar Peça</button>
+                <button class="btn btn-blue" onclick="abrirConfiguracoes()"><i class="fa-solid fa-gear"></i>
+                    Configs</button>
+                <button class="btn btn-green" onclick="abrirViewCriacao()">+ Adicionar Peça</button>
             </div>
         </header>
 
@@ -1049,6 +1065,30 @@
         </div>
     </div>
 
+    <!-- MODAL DE CONFIGURAÇÕES ESCURO -->
+    <div id="configOverlay" class="modal-overlay hidden" onclick="fecharConfiguracoes()"></div>
+    <div id="configModal" class="modal hidden" style="max-width: 450px;">
+        <div class="modal-header">
+            <h3>⚙️ Configurações Gerais</h3>
+            <button class="close-modal" onclick="fecharConfiguracoes()">x</button>
+        </div>
+        <div class="modal-body">
+            <p style="color: #A0A5B5; font-size: 13px; margin-bottom: 20px;">
+                Estas informações serão aplicadas globalmente na loja (Ex: vitrine de clientes).
+            </p>
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label>Número de Atendimento (Fale Conosco)</label>
+                <input type="text" id="configWhatsappInput" placeholder="Ex: 5592999999999"
+                    style="background:#0A0C10; color:white; border:1px solid #333; padding:12px; border-radius:8px; width:100%; box-sizing:border-box;">
+                <small style="color: #777; font-size: 11px; margin-top:5px; display:block;">Digite código do país + ddd
+                    + número (somente números)</small>
+            </div>
+
+            <button class="btn btn-green" style="width: 100%; padding:14px; font-size: 15px;" id="btnSalvarConfig"
+                onclick="salvarConfiguracoes()">Salvar Configurações</button>
+        </div>
+    </div>
+
     <!-- Input de Arquivo Oculto para Fotos -->
     <input type="file" id="fileInput" accept="image/*" class="hidden">
 
@@ -1060,7 +1100,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         // const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = removidos para usar ImgBB;
 
         const firebaseConfig = {
@@ -1088,6 +1128,15 @@
         let tempFotosToUpload = []; // Array de { file: File|null, url: string }
         let editingProductId = null; // ID do produto sendo editado
         let currentIndexLive = 0; // Controla qual foto esta ativa no Carrossel LivePreview
+        let currentConfig = { whatsappPrincipal: "" }; // Estado local da Config
+
+        // Listener da Coleção de Configuração da Loja
+        onSnapshot(doc(db, "loja_config", "geral"), (docSnap) => {
+            if (docSnap.exists()) {
+                currentConfig = docSnap.data();
+                document.getElementById('configWhatsappInput').value = currentConfig.whatsappPrincipal || "";
+            }
+        });
 
         // Preencher Selects de Categoria
         function preencherCategorias() {
@@ -1109,6 +1158,39 @@
         function hideLoading() {
             document.getElementById('loading').classList.remove('active');
         }
+
+        // Configurações Gerais
+        window.abrirConfiguracoes = () => {
+            document.getElementById('configOverlay').classList.remove('hidden');
+            document.getElementById('configModal').classList.remove('hidden');
+        };
+
+        window.fecharConfiguracoes = () => {
+            document.getElementById('configOverlay').classList.add('hidden');
+            document.getElementById('configModal').classList.add('hidden');
+        };
+
+        window.salvarConfiguracoes = async () => {
+            const numAtendimento = document.getElementById('configWhatsappInput').value.trim();
+            const btn = document.getElementById('btnSalvarConfig');
+            btn.innerText = "Salvando...";
+            btn.disabled = true;
+
+            try {
+                await setDoc(doc(db, "loja_config", "geral"), {
+                    whatsappPrincipal: numAtendimento
+                }, { merge: true });
+
+                fecharConfiguracoes();
+                alert('Configurações salvas com sucesso!');
+            } catch (e) {
+                console.error(e);
+                alert("Erro ao salvar configuração!");
+            }
+
+            btn.innerText = "Salvar Configurações";
+            btn.disabled = false;
+        };
 
         // Funcionalidades da View de Criação (FB Marketplace View)
         window.abrirViewCriacao = () => {
