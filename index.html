@@ -1,72 +1,786 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ADM - Cadastro de Peças</title>
+    <title>Catálogo de Peças - ADM</title>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
-        .container { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 100%; max-width: 400px; }
-        h2 { text-align: center; color: #00ff88; }
-        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border-radius: 4px; border: none; background: #333; color: white; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #00ff88; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        button:hover { background: #00cc6e; }
+        :root {
+            --bg-body: #161A23;
+            --bg-card: #202634;
+            --bg-header: #11141C;
+            --bg-input: #0B0D13;
+            --text-main: #FFFFFF;
+            --text-muted: #A0A5B5;
+            --accent-green: #00E676;
+            --accent-blue: #3B82F6;
+            --accent-red: #EF4444;
+            --accent-orange: #F59E0B;
+            --accent-purple: #8B5CF6;
+            --border-color: #374151;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: var(--bg-header);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .header-actions input,
+        .header-actions select {
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .header-actions input:focus,
+        .header-actions select:focus {
+            border-color: var(--accent-blue);
+        }
+
+        .btn {
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 13px;
+            transition: opacity 0.2s, filter 0.2s;
+            text-align: center;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            opacity: 0.8;
+            filter: brightness(1.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-blue {
+            background-color: var(--accent-blue);
+        }
+
+        .btn-green {
+            background-color: var(--accent-green);
+            color: #000;
+        }
+
+        .btn-red {
+            background-color: var(--accent-red);
+        }
+
+        .btn-orange {
+            background-color: var(--accent-orange);
+            color: #000;
+        }
+
+        .btn-gray {
+            background-color: #4B5563;
+        }
+
+        .btn-purple {
+            background-color: var(--accent-purple);
+        }
+
+        main {
+            padding: 30px;
+        }
+
+        #lista-produtos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+
+        .card.is-vendido {
+            opacity: 0.7;
+        }
+
+        .card.is-promocao {
+            border: 2px solid var(--accent-orange);
+        }
+
+        .card-images {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .img-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%;
+            background-color: var(--bg-input);
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px dashed var(--border-color);
+        }
+
+        .img-container img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            background-color: #000;
+        }
+
+        .img-actions {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            right: 4px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 10;
+        }
+
+        .img-btn {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            font-size: 10px;
+            padding: 3px 6px;
+            cursor: pointer;
+        }
+
+        .img-btn:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+
+        .img-btn.del {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+        }
+
+        .card-content h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            line-height: 1.3;
+        }
+
+        .card-content .categoria {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin: 0 0 10px 0;
+        }
+
+        .card-content .descricao {
+            font-size: 13px;
+            color: #D1D5DB;
+            white-space: pre-wrap;
+            line-height: 1.4;
+            margin-bottom: 15px;
+        }
+
+        .card-content .preco {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--accent-blue);
+            margin-bottom: 15px;
+        }
+
+        .card-edit-mode input,
+        .card-edit-mode textarea,
+        .card-edit-mode select {
+            width: 100%;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            box-sizing: border-box;
+            font-size: 13px;
+        }
+
+        .card-edit-mode textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .card-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: auto;
+        }
+
+        .card-actions-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .card-actions-row .btn {
+            flex: 1;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background-color: var(--bg-card);
+            padding: 25px;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.8);
+        }
+
+        .modal h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            flex-direction: column;
+            color: white;
+            gap: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: var(--accent-green);
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>Cadastrar Peça</h2>
-    <input type="text" id="titulo" placeholder="Nome da Peça (ex: RTX 3060)">
-    <input type="number" id="preco" placeholder="Preço (R$)">
-    <textarea id="descricao" placeholder="Descrição técnica..."></textarea>
-    <button id="btnCadastrar">Cadastrar na Vitrine</button>
-</div>
+    <header>
+        <h1>Catálogo de Peças</h1>
+        <div class="header-actions">
+            <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="filtrarProdutos()">
+            <select id="catFilter" onchange="filtrarProdutos()">
+                <option value="Todas">Todas categorias</option>
+                <!-- Preenchido via JS -->
+            </select>
+            <select id="statusFilter" onchange="filtrarProdutos()">
+                <option value="Todos">Todos</option>
+                <option value="Ativos">Ativos</option>
+                <option value="Vendidos">Vendidos</option>
+                <option value="Promocao">Em Promoção</option>
+            </select>
+            <button class="btn btn-blue" onclick="abrirModal()">+ Adicionar Peça</button>
+        </div>
+    </header>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <main>
+        <div id="lista-produtos">
+            <!-- Cards renderizados aqui -->
+        </div>
+    </main>
 
-    // COLOQUE AS SUAS CHAVES AQUI (As que você tirou print agora pouco)
-    const firebaseConfig = {
-      apiKey: "AIzaSyDsvE-Bt_rmSsNFlJq5ZktND5JViCsadL0",
-      authDomain: "loja-virtual-f514c.firebaseapp.com",
-      projectId: "loja-virtual-f514c",
-      storageBucket: "loja-virtual-f514c.firebasestorage.app",
-      messagingSenderId: "313055738172",
-      appId: "1:313055738172:web:78ee67f6a07a427a574639"
-    };
+    <!-- Modal Cadastro -->
+    <div class="modal-overlay" id="modalCadastro">
+        <div class="modal">
+            <h2>Cadastrar Nova Peça</h2>
+            <div class="form-group">
+                <label>Nome da Peça</label>
+                <input type="text" id="cadTitulo" placeholder="Ex: RTX 3060">
+            </div>
+            <div class="form-group">
+                <label>Categoria</label>
+                <select id="cadCategoria">
+                    <!-- Preenchido via JS -->
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Preço (R$)</label>
+                <input type="number" id="cadPreco" placeholder="Ex: 1500">
+            </div>
+            <div class="form-group">
+                <label>Descricao / Especificações</label>
+                <textarea id="cadDescricao"
+                    placeholder="Detalhes técnicos, estado de uso, local de retirada..."></textarea>
+            </div>
+            <!-- Fotos serão adicionadas individualmente após o card ser criado, seguindo a lógica da imagem da dashboard -->
+            <div class="modal-actions">
+                <button class="btn btn-gray" onclick="fecharModal()">Cancelar</button>
+                <button class="btn btn-green" onclick="salvarNovoProduto()">Salvar Produto</button>
+            </div>
+        </div>
+    </div>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <!-- Input de Arquivo Oculto para Fotos -->
+    <input type="file" id="fileInput" accept="image/*" class="hidden">
 
-    // FUNÇÃO PARA SALVAR NO BANCO
-    document.getElementById('btnCadastrar').addEventListener('click', async () => {
-        const titulo = document.getElementById('titulo').value;
-        const preco = document.getElementById('preco').value;
-        const descricao = document.getElementById('descricao').value;
+    <!-- Loading -->
+    <div class="loading-overlay" id="loading">
+        <div class="spinner"></div>
+        <span id="loadingText">Processando...</span>
+    </div>
 
-        if(titulo && preco) {
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsvE-Bt_rmSsNFlJq5ZktND5JViCsadL0",
+            authDomain: "loja-virtual-f514c.firebaseapp.com",
+            projectId: "loja-virtual-f514c",
+            storageBucket: "loja-virtual-f514c.firebasestorage.app",
+            messagingSenderId: "313055738172",
+            appId: "1:313055738172:web:78ee67f6a07a427a574639"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        const categorias = [
+            "Controle", "Resfriadores", "Teclado", "Gabinete", "Fonte",
+            "Processador", "Armazenamento", "Headset", "Placa de Vídeo",
+            "Monitor", "Memória RAM", "Placa-mãe", "Mouse", "Kit", "Outros"
+        ];
+
+        let produtosGlobais = [];
+
+        // Preencher Selects de Categoria
+        function preencherCategorias() {
+            const catFilter = document.getElementById('catFilter');
+            const cadCategoria = document.getElementById('cadCategoria');
+            categorias.sort().forEach(c => {
+                catFilter.innerHTML += `<option value="${c}">${c}</option>`;
+                cadCategoria.innerHTML += `<option value="${c}">${c}</option>`;
+            });
+        }
+        preencherCategorias();
+
+        function showLoading(text) {
+            document.getElementById('loadingText').innerText = text;
+            document.getElementById('loading').classList.add('active');
+        }
+        function hideLoading() {
+            document.getElementById('loading').classList.remove('active');
+        }
+
+        // Modal helpers
+        window.abrirModal = () => {
+            document.getElementById('cadTitulo').value = '';
+            document.getElementById('cadPreco').value = '';
+            document.getElementById('cadDescricao').value = '';
+            document.getElementById('modalCadastro').classList.add('active');
+        };
+        window.fecharModal = () => document.getElementById('modalCadastro').classList.remove('active');
+
+        // Cadastrar Novo
+        window.salvarNovoProduto = async () => {
+            const titulo = document.getElementById('cadTitulo').value.trim();
+            const categoria = document.getElementById('cadCategoria').value;
+            const preco = document.getElementById('cadPreco').value;
+            const descricao = document.getElementById('cadDescricao').value.trim();
+
+            if (!titulo || !preco) return alert('Preencha título e preço!');
+
+            showLoading('Salvando produto...');
             try {
                 await addDoc(collection(db, "produtos"), {
                     nome: titulo,
-                    valor: preco,
+                    categoria: categoria,
+                    valor: Number(preco),
                     desc: descricao,
-                    data: new Date()
+                    fotos: [], // Array de URLs
+                    promocao: false,
+                    vendido: false,
+                    data: new Date().toISOString()
                 });
-                alert("Peça cadastrada com sucesso!");
-                // Limpa os campos
-                document.getElementById('titulo').value = '';
-                document.getElementById('preco').value = '';
-                document.getElementById('descricao').value = '';
+                fecharModal();
             } catch (e) {
-                alert("Erro ao salvar: " + e);
+                console.error(e);
+                alert('Erro ao salvar no banco!');
             }
-        } else {
-            alert("Preencha pelo menos Nome e Preço!");
+            hideLoading();
+        };
+
+        // Listen to Firestore
+        onSnapshot(collection(db, "produtos"), (snapshot) => {
+            produtosGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            // Ordenar do mais novo para o mais antigo por padrão
+            produtosGlobais.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+            renderizarProdutos();
+        });
+
+        // Renderizar
+        window.filtrarProdutos = () => renderizarProdutos();
+
+        function renderizarProdutos() {
+            const lista = document.getElementById('lista-produtos');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const cat = document.getElementById('catFilter').value;
+            const status = document.getElementById('statusFilter').value;
+
+            lista.innerHTML = '';
+
+            produtosGlobais.forEach(p => {
+                // Filtros
+                if (search && !p.nome.toLowerCase().includes(search) && !p.desc?.toLowerCase().includes(search)) return;
+                if (cat !== 'Todas' && p.categoria !== cat) return;
+                if (status === 'Vendidos' && !p.vendido) return;
+                if (status === 'Ativos' && p.vendido) return;
+                if (status === 'Promocao' && !p.promocao) return;
+
+                const card = document.createElement('div');
+                card.className = `card ${p.vendido ? 'is-vendido' : ''} ${p.promocao ? 'is-promocao' : ''}`;
+                card.id = `card-${p.id}`;
+
+                // Imagens Html (limitado a 4)
+                let fotosHtml = '';
+                const fotos = p.fotos || [];
+                if (fotos.length > 0) {
+                    fotosHtml += '<div class="card-images">';
+                    for (let i = 0; i < 4; i++) {
+                        if (i < fotos.length) {
+                            fotosHtml += `
+                            <div class="img-container">
+                                <img src="${fotos[i]}" alt="Foto ${i + 1}">
+                                <div class="img-actions">
+                                    <button class="img-btn" onclick="trocarFoto('${p.id}', ${i})">Trocar</button>
+                                    <button class="img-btn del" onclick="removerFoto('${p.id}', ${i})">X</button>
+                                </div>
+                            </div>
+                        `;
+                        } else if (fotos.length > 0 && false) { // Opcional renderizar slots vazios
+                            fotosHtml += `<div class="img-container"></div>`;
+                        }
+                    }
+                    fotosHtml += '</div>';
+                }
+
+                card.innerHTML = `
+                ${fotosHtml}
+                <div class="card-content" id="view-${p.id}">
+                    <h3>${p.nome}</h3>
+                    <p class="categoria">Categoria: ${p.categoria || 'Não definida'}</p>
+                    <div class="descricao">${p.desc || ''}</div>
+                    <div class="preco">R$ ${p.valor}</div>
+                </div>
+
+                <div class="card-edit-mode hidden" id="edit-${p.id}">
+                    <input type="text" id="editNome-${p.id}" value="${p.nome}">
+                    <select id="editCat-${p.id}">
+                        ${categorias.map(c => `<option value="${c}" ${p.categoria === c ? 'selected' : ''}>${c}</option>`).join('')}
+                    </select>
+                    <textarea id="editDesc-${p.id}">${p.desc || ''}</textarea>
+                    <input type="number" id="editPreco-${p.id}" value="${p.valor}">
+                </div>
+
+                <div class="card-actions">
+                    <div class="card-actions-row">
+                        <button class="btn btn-blue" onclick="toggleEdit('${p.id}')" id="btnEdit-${p.id}">Editar</button>
+                        <button class="btn btn-green hidden" onclick="salvarEdicao('${p.id}')" id="btnSalvar-${p.id}">Salvar</button>
+                        <button class="btn btn-gray" onclick="deletarProduto('${p.id}')">Excluir</button>
+                    </div>
+                    <div class="card-actions-row">
+                        <button class="btn ${p.promocao ? 'btn-gray' : 'btn-orange'}" onclick="togglePromo('${p.id}', ${p.promocao})">
+                            ${p.promocao ? 'Remover Promo' : 'Promoção'}
+                        </button>
+                        <button class="btn ${p.vendido ? 'btn-gray' : 'btn-red'}" onclick="toggleVendido('${p.id}', ${p.vendido})">
+                            ${p.vendido ? 'Desmarcar' : 'Vendido'}
+                        </button>
+                    </div>
+                    ${fotos.length < 4 ? `
+                    <div class="card-actions-row">
+                        <button class="btn btn-purple" onclick="adicionarFoto('${p.id}')">+ Foto</button>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+                lista.appendChild(card);
+            });
         }
-    });
-</script>
+
+        // Funções de Edição in-place
+        window.toggleEdit = (id) => {
+            const view = document.getElementById(`view-${id}`);
+            const edit = document.getElementById(`edit-${id}`);
+            const btnEdit = document.getElementById(`btnEdit-${id}`);
+            const btnSalvar = document.getElementById(`btnSalvar-${id}`);
+
+            if (view.classList.contains('hidden')) {
+                // Cancelando edicao
+                view.classList.remove('hidden');
+                edit.classList.add('hidden');
+                btnEdit.classList.remove('hidden');
+                btnSalvar.classList.add('hidden');
+            } else {
+                // Abrindo edicao
+                view.classList.add('hidden');
+                edit.classList.remove('hidden');
+                btnEdit.classList.add('hidden');
+                btnSalvar.classList.remove('hidden');
+            }
+        }
+
+        window.salvarEdicao = async (id) => {
+            const nome = document.getElementById(`editNome-${id}`).value;
+            const categoria = document.getElementById(`editCat-${id}`).value;
+            const desc = document.getElementById(`editDesc-${id}`).value;
+            const valor = document.getElementById(`editPreco-${id}`).value;
+
+            showLoading('Salvando...');
+            try {
+                await updateDoc(doc(db, "produtos", id), {
+                    nome, categoria, desc, valor: Number(valor)
+                });
+            } catch (e) {
+                alert('Erro ao editar.'); console.error(e);
+            }
+            hideLoading();
+        }
+
+        window.deletarProduto = async (id) => {
+            if (!confirm('Certeza que deseja excluir este produto?')) return;
+            showLoading('Excluindo...');
+            try {
+                // TODO: Se quiser ser 100% limpo, deve deletar as fotos do Storage aqui tbm
+                const p = produtosGlobais.find(x => x.id === id);
+                if (p && p.fotos) {
+                    for (let url of p.fotos) {
+                        try {
+                            // Extrair o path do Firebase Storage baseado na URL não é trivial, 
+                            // mas se fosse necessário deletaria aqui.
+                        } catch (e) { }
+                    }
+                }
+                await deleteDoc(doc(db, "produtos", id));
+            } catch (e) {
+                alert('Erro ao excluir'); console.error(e);
+            }
+            hideLoading();
+        }
+
+        window.togglePromo = async (id, estadoAtual) => {
+            try { await updateDoc(doc(db, "produtos", id), { promocao: !estadoAtual }); } catch (e) { }
+        }
+        window.toggleVendido = async (id, estadoAtual) => {
+            try { await updateDoc(doc(db, "produtos", id), { vendido: !estadoAtual }); } catch (e) { }
+        }
+
+        // LÓGICA DE FOTOS VIA FIREBASE STORAGE
+        let currentUploadProdId = null;
+        let currentReplaceIndex = null;
+        const fileInput = document.getElementById('fileInput');
+
+        window.adicionarFoto = (id) => {
+            currentUploadProdId = id;
+            currentReplaceIndex = null;
+            fileInput.click();
+        }
+
+        window.trocarFoto = (id, idx) => {
+            currentUploadProdId = id;
+            currentReplaceIndex = idx;
+            fileInput.click();
+        }
+
+        window.removerFoto = async (id, idx) => {
+            if (!confirm('Remover esta foto?')) return;
+            showLoading('Removendo foto...');
+            try {
+                const p = produtosGlobais.find(x => x.id === id);
+                let fotos = [...(p.fotos || [])];
+                fotos.splice(idx, 1); // remove item da array
+
+                await updateDoc(doc(db, "produtos", id), { fotos });
+            } catch (e) {
+                alert('Erro ao remover.');
+                console.error(e);
+            }
+            hideLoading();
+        }
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showLoading('Enviando foto...');
+            try {
+                // Upload
+                const fileName = `fotos/${Date.now()}_${file.name}`;
+                const storageRef = ref(storage, fileName);
+                await uploadBytes(storageRef, file);
+
+                // Get URL
+                const url = await getDownloadURL(storageRef);
+
+                // Update DB
+                const p = produtosGlobais.find(x => x.id === currentUploadProdId);
+                let fotos = [...(p.fotos || [])];
+
+                if (currentReplaceIndex !== null) {
+                    fotos[currentReplaceIndex] = url; // Trocar
+                } else {
+                    fotos.push(url); // Adicionar no final
+                }
+
+                await updateDoc(doc(db, "produtos", currentUploadProdId), { fotos });
+
+            } catch (error) {
+                console.error(error);
+                alert('Erro ao fazer upload da foto. Verifique as Regras de Segurança do seu Firebase Storage!');
+            }
+
+            fileInput.value = ''; // Limpar input
+            hideLoading();
+        });
+
+    </script>
 
 </body>
+
 </html>
