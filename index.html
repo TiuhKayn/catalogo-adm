@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ADM - Cadastro de Peças</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: white; display: flex; justify-content: center; padding: 20px; }
+        .container { background: #1e1e1e; padding: 20px; border-radius: 8px; width: 100%; max-width: 400px; }
+        h2 { text-align: center; color: #00ff88; }
+        input, textarea { width: 100%; padding: 10px; margin: 10px 0; border-radius: 4px; border: none; background: #333; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #00ff88; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #00cc6e; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Cadastrar Peça</h2>
+    <input type="text" id="titulo" placeholder="Nome da Peça (ex: RTX 3060)">
+    <input type="number" id="preco" placeholder="Preço (R$)">
+    <textarea id="descricao" placeholder="Descrição técnica..."></textarea>
+    <button id="btnCadastrar">Cadastrar na Vitrine</button>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // COLOQUE AS SUAS CHAVES AQUI (As que você tirou print agora pouco)
+    const firebaseConfig = {
+      apiKey: "AIzaSyDsvE-Bt_rmSsNFlJq5ZktND5JViCsadL0",
+      authDomain: "loja-virtual-f514c.firebaseapp.com",
+      projectId: "loja-virtual-f514c",
+      storageBucket: "loja-virtual-f514c.firebasestorage.app",
+      messagingSenderId: "313055738172",
+      appId: "1:313055738172:web:78ee67f6a07a427a574639"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // FUNÇÃO PARA SALVAR NO BANCO
+    document.getElementById('btnCadastrar').addEventListener('click', async () => {
+        const titulo = document.getElementById('titulo').value;
+        const preco = document.getElementById('preco').value;
+        const descricao = document.getElementById('descricao').value;
+
+        if(titulo && preco) {
+            try {
+                await addDoc(collection(db, "produtos"), {
+                    nome: titulo,
+                    valor: preco,
+                    desc: descricao,
+                    data: new Date()
+                });
+                alert("Peça cadastrada com sucesso!");
+                // Limpa os campos
+                document.getElementById('titulo').value = '';
+                document.getElementById('preco').value = '';
+                document.getElementById('descricao').value = '';
+            } catch (e) {
+                alert("Erro ao salvar: " + e);
+            }
+        } else {
+            alert("Preencha pelo menos Nome e Preço!");
+        }
+    });
+</script>
+
+</body>
+</html>
