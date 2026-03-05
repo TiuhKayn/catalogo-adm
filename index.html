@@ -1048,21 +1048,7 @@
                 <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="filtrarProdutos()">
                 <select id="catFilter" onchange="filtrarProdutos()">
                     <option value="Todas">Todas categorias</option>
-                    <option value="Controle">Controle</option>
-                    <option value="Resfriadores">Resfriadores</option>
-                    <option value="Teclado">Teclado</option>
-                    <option value="Gabinete">Gabinete</option>
-                    <option value="Fonte">Fonte</option>
-                    <option value="Processador">Processador</option>
-                    <option value="Armazenamento">Armazenamento</option>
-                    <option value="Headset">Headset</option>
-                    <option value="Placa de Vídeo">Placa de Vídeo</option>
-                    <option value="Monitor">Monitor</option>
-                    <option value="Memória RAM">Memória RAM</option>
-                    <option value="Placa-mãe">Placa-mãe</option>
-                    <option value="Mouse">Mouse</option>
-                    <option value="Kit">Kit</option>
-                    <option value="Outros">Outros</option>
+                    <!-- Preenchido via JS -->
                 </select>
                 <select id="statusFilter" onchange="filtrarProdutos()">
                     <option value="Todos">Todos</option>
@@ -1254,7 +1240,8 @@
         const categorias = [
             "Controle", "Resfriadores", "Teclado", "Gabinete", "Fonte",
             "Processador", "Armazenamento", "Headset", "Placa de Vídeo",
-            "Monitor", "Memória RAM", "Placa-mãe", "Mouse", "Kit", "Outros"
+            "Monitor", "Memória RAM", "Placa-mãe", "Mouse", "Adaptadores",
+            "Controladora", "Kit", "Outros"
         ];
 
         let produtosGlobais = [];
@@ -1298,6 +1285,14 @@
         function preencherCategorias() {
             const catFilter = document.getElementById('catFilter');
             const cadCategoria = document.getElementById('cadCategoria');
+
+            if (catFilter) {
+                catFilter.innerHTML = '<option value="Todas">Todas categorias</option>';
+            }
+            if (cadCategoria) {
+                cadCategoria.innerHTML = '<option value="" disabled selected hidden>Selecione uma Categoria...</option>';
+            }
+
             categorias.sort().forEach(c => {
                 if (catFilter) catFilter.innerHTML += `<option value="${c}">${c}</option>`;
                 if (cadCategoria) cadCategoria.innerHTML += `<option value="${c}">${c}</option>`;
@@ -1651,6 +1646,7 @@
             const status = document.getElementById('statusFilter').value;
 
             lista.innerHTML = '';
+            const fragment = document.createDocumentFragment();
 
             produtosGlobais.forEach(p => {
                 // Filtros
@@ -1676,9 +1672,9 @@
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
                                 <div class="img-container">
-                                    <div style="position: absolute; inset: -20px; background-image: url('${chunk[i]}'); background-size: cover; background-position: center; filter: blur(15px); z-index: 0;"></div>
+                                    <img src="${chunk[i]}" loading="lazy" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
-                                    <img src="${chunk[i]}" alt="Foto ${c + i + 1}" draggable="true" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
+                                    <img src="${chunk[i]}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
                                 </div>
                             `;
                         }
@@ -1734,8 +1730,9 @@
                     </div>
                 </div>
             `;
-                lista.appendChild(card);
+                fragment.appendChild(card);
             });
+            lista.appendChild(fragment);
         }
 
         window.deletarProduto = async (id) => {
