@@ -211,18 +211,17 @@
         .img-container {
             position: relative;
             background-color: #0B0D13;
-            background-image:
-                linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.03) 75%, rgba(255, 255, 255, 0.03)),
-                linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, 0.03) 75%, rgba(255, 255, 255, 0.03));
-            background-size: 20px 20px;
-            background-position: 0 0, 10px 10px;
-            border-radius: 6px;
+            border-radius: 16px;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
             height: 100%;
+            background-clip: padding-box;
+            isolation: isolate;
+            transform: translateZ(0);
+            box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
         }
 
         .img-container img {
@@ -232,6 +231,7 @@
             width: 100%;
             height: 100%;
             object-fit: contain;
+            border-radius: inherit;
         }
 
         .img-actions {
@@ -481,6 +481,142 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
+        }
+
+        /* CONFIG MODAL - PREMIUM DARK SETTINGS */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+            display: none !important;
+        }
+
+        .modal {
+            background-color: #0F0F11;
+            border: 1px solid #222;
+            border-radius: 24px;
+            width: 90%;
+            max-width: 420px;
+            padding: 40px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(139, 92, 246, 0.1);
+            z-index: 10001;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .modal.hidden {
+            transform: translate(-50%, -45%) scale(0.9);
+            opacity: 0;
+            pointer-events: none;
+            display: none !important;
+        }
+
+        .settings-title {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 800;
+            color: #C4B5FD;
+            /* Lilas suave */
+            margin: 0;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+
+        .settings-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .settings-group label {
+            text-align: center;
+            color: #94A3B8;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: none;
+        }
+
+        .settings-input {
+            background-color: #1A1A1E;
+            border: 1.5px solid #2D2D33;
+            color: white;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 15px;
+            width: 100%;
+            box-sizing: border-box;
+            outline: none;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .settings-input:focus {
+            border-color: #8B5CF6;
+            background-color: #202026;
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+        }
+
+        .settings-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .btn-settings-save {
+            background: linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 14px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-settings-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+        }
+
+        .btn-settings-cancel {
+            background-color: transparent;
+            color: #94A3B8;
+            border: 1.5px solid #2D2D33;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-settings-cancel:hover {
+            border-color: #444;
+            color: white;
+            background-color: rgba(255, 255, 255, 0.05);
         }
 
         .loading-overlay.active {
@@ -934,8 +1070,9 @@
                     <option value="Vendidos">Vendidos</option>
                     <option value="Promocao">Em Promoção</option>
                 </select>
-                <button class="btn btn-blue" onclick="abrirConfiguracoes()"><i class="fa-solid fa-gear"></i>
-                    Configs</button>
+                <button class="btn btn-blue" id="btnOpenConfigs">
+                    <i class="fa-solid fa-gear"></i> Configs
+                </button>
                 <button class="btn btn-green" onclick="abrirViewCriacao()">+ Adicionar Peça</button>
             </div>
         </header>
@@ -1065,32 +1202,30 @@
         </div>
     </div>
 
-    <!-- MODAL DE CONFIGURAÇÕES ESCURO -->
-    <div id="configOverlay" class="modal-overlay hidden" onclick="fecharConfiguracoes()"></div>
-    <div id="configModal" class="modal hidden" style="max-width: 450px;">
-        <div class="modal-header">
-            <h3>⚙️ Configurações Gerais</h3>
-            <button class="close-modal" onclick="fecharConfiguracoes()">x</button>
-        </div>
-        <div class="modal-body">
-            <p style="color: #A0A5B5; font-size: 13px; margin-bottom: 20px;">
-                Estas informações serão aplicadas globalmente na loja (Ex: vitrine de clientes).
-            </p>
-            <div class="form-group" style="margin-bottom: 25px;">
-                <label>Número de Atendimento (Fale Conosco)</label>
-                <input type="text" id="configWhatsappInput" placeholder="Ex: 5592999999999"
-                    style="background:#0A0C10; color:white; border:1px solid #333; padding:12px; border-radius:8px; width:100%; box-sizing:border-box;">
-                <small style="color: #777; font-size: 11px; margin-top:5px; display:block;">Digite código do país + ddd
-                    + número (somente números)</small>
-            </div>
-
-            <button class="btn btn-green" style="width: 100%; padding:14px; font-size: 15px;" id="btnSalvarConfig"
-                onclick="salvarConfiguracoes()">Salvar Configurações</button>
-        </div>
-    </div>
-
     <!-- Input de Arquivo Oculto para Fotos -->
     <input type="file" id="fileInput" accept="image/*" class="hidden">
+
+    <!-- MODAL DE CONFIGURAÇÕES ESCURO (TEMA PREMIUM) -->
+    <div id="configOverlay" class="modal-overlay hidden" onclick="fecharConfiguracoes()"></div>
+    <div id="configModal" class="modal hidden">
+        <h3 class="settings-title">Configurações</h3>
+
+        <div class="settings-group">
+            <label>Nome de Usuário (Exclusivo)</label>
+            <input type="text" class="settings-input" value="Kayn" readonly style="opacity: 0.6; cursor: not-allowed;">
+        </div>
+
+        <div class="settings-group">
+            <label>Número de Atendimento (WhatsApp)</label>
+            <input type="text" id="configWhatsappInput" class="settings-input" placeholder="Ex: 5592999999999">
+        </div>
+
+        <div class="settings-actions">
+            <button class="btn-settings-save" id="btnSalvarConfig" onclick="salvarConfiguracoes()">Salvar
+                Alterações</button>
+            <button class="btn-settings-cancel" onclick="fecharConfiguracoes()">Cancelar</button>
+        </div>
+    </div>
 
     <!-- Loading -->
     <div class="loading-overlay" id="loading">
@@ -1101,7 +1236,6 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        // const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = removidos para usar ImgBB;
 
         const firebaseConfig = {
             apiKey: "AIzaSyDsvE-Bt_rmSsNFlJq5ZktND5JViCsadL0",
@@ -1115,7 +1249,6 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // CHAVE DA API IMGBB (Cole sua chave dentro das aspas abaixo):
         const IMGBB_API_KEY = 'c680f94a7ed669d54bf725632ae564c4';
 
         const categorias = [
@@ -1125,12 +1258,36 @@
         ];
 
         let produtosGlobais = [];
-        let tempFotosToUpload = []; // Array de { file: File|null, url: string }
-        let editingProductId = null; // ID do produto sendo editado
-        let currentIndexLive = 0; // Controla qual foto esta ativa no Carrossel LivePreview
-        let currentConfig = { whatsappPrincipal: "" }; // Estado local da Config
+        let tempFotosToUpload = [];
+        let editingProductId = null;
+        let currentIndexLive = 0;
+        let currentConfig = { whatsappPrincipal: "" };
 
-        // Listener da Coleção de Configuração da Loja
+        // Configuração Global (Listeners de Janela)
+        window.abrirConfiguracoes = () => {
+            console.log("Abrindo configurações...");
+            document.getElementById('configOverlay').classList.remove('hidden');
+            document.getElementById('configModal').classList.remove('hidden');
+        };
+
+        window.fecharConfiguracoes = () => {
+            document.getElementById('configOverlay').classList.add('hidden');
+            document.getElementById('configModal').classList.add('hidden');
+        };
+
+        // Attach listeners when DOM is ready
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnOpen = document.getElementById('btnOpenConfigs');
+            if (btnOpen) btnOpen.addEventListener('click', window.abrirConfiguracoes);
+        });
+
+        // Caso o DOM já tenha carregado (Scripts defer/module)
+        if (document.readyState === 'complete' || document.readyState === 'interactive') {
+            const btnOpen = document.getElementById('btnOpenConfigs');
+            if (btnOpen) btnOpen.addEventListener('click', window.abrirConfiguracoes);
+        }
+
+        // Listener Firestore Config
         onSnapshot(doc(db, "loja_config", "geral"), (docSnap) => {
             if (docSnap.exists()) {
                 currentConfig = docSnap.data();
@@ -1138,15 +1295,12 @@
             }
         });
 
-        // Preencher Selects de Categoria
         function preencherCategorias() {
             const catFilter = document.getElementById('catFilter');
             const cadCategoria = document.getElementById('cadCategoria');
-            // O select do filtro pode manter o "Todas categorias" padrao, 
-            // Já o do Cadastro agora tem uma default_option hardcoded.
             categorias.sort().forEach(c => {
-                catFilter.innerHTML += `<option value="${c}">${c}</option>`;
-                cadCategoria.innerHTML += `<option value="${c}">${c}</option>`;
+                if (catFilter) catFilter.innerHTML += `<option value="${c}">${c}</option>`;
+                if (cadCategoria) cadCategoria.innerHTML += `<option value="${c}">${c}</option>`;
             });
         }
         preencherCategorias();
@@ -1158,17 +1312,6 @@
         function hideLoading() {
             document.getElementById('loading').classList.remove('active');
         }
-
-        // Configurações Gerais
-        window.abrirConfiguracoes = () => {
-            document.getElementById('configOverlay').classList.remove('hidden');
-            document.getElementById('configModal').classList.remove('hidden');
-        };
-
-        window.fecharConfiguracoes = () => {
-            document.getElementById('configOverlay').classList.add('hidden');
-            document.getElementById('configModal').classList.add('hidden');
-        };
 
         window.salvarConfiguracoes = async () => {
             const numAtendimento = document.getElementById('configWhatsappInput').value.trim();
@@ -1188,11 +1331,11 @@
                 alert("Erro ao salvar configuração!");
             }
 
-            btn.innerText = "Salvar Configurações";
+            btn.innerText = "Salvar Alterações";
             btn.disabled = false;
         };
 
-        // Funcionalidades da View de Criação (FB Marketplace View)
+        // FB View Handlers
         window.abrirViewCriacao = () => {
             limparFormulario();
             editingProductId = null;
@@ -1532,9 +1675,10 @@
                         fotosHtml += `<div class="img-grid-chunk" data-count="${chunk.length}">`;
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
-                                <div class="img-container" style="background-image: url('${chunk[i]}'); background-size: cover; background-position: center;">
-                                    <div style="position: absolute; inset: 0; backdrop-filter: blur(10px); background-color: rgba(0,0,0,0.4);"></div>
-                                    <img src="${chunk[i]}" alt="Foto ${c + i + 1}" draggable="true" style="cursor: grab; position: relative; z-index: 1;">
+                                <div class="img-container">
+                                    <div style="position: absolute; inset: -20px; background-image: url('${chunk[i]}'); background-size: cover; background-position: center; filter: blur(15px); z-index: 0;"></div>
+                                    <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
+                                    <img src="${chunk[i]}" alt="Foto ${c + i + 1}" draggable="true" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
                                 </div>
                             `;
                         }
