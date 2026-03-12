@@ -1190,7 +1190,14 @@
                 </div>
 
                 <div class="fb-input-group" style="margin-top: 5px;">
-                    <label>Número do Vendedor (WhatsApp)</label>
+                    <label>Vendedor do Anúncio</label>
+                    <select id="cadVendedor">
+                        <!-- Preenchido via JS -->
+                    </select>
+                </div>
+
+                <div class="fb-input-group" style="margin-top: 5px;">
+                    <label>Número de WhatsApp para este item</label>
                     <input type="text" id="cadWhatsapp" placeholder="Ex: 5511999999999 (Apenas números)">
                 </div>
 
@@ -1335,10 +1342,34 @@
         ];
 
         let produtosGlobais = [];
+        let vendedoresGlobais = []; // Lista de todos os vendedores
         let tempFotosToUpload = [];
         let editingProductId = null;
         let currentIndexLive = 0;
         let currentConfig = { whatsappPrincipal: "" };
+
+        // --- BUSCAR LISTA DE VENDEDORES ---
+        async function buscarVendedores() {
+            try {
+                const snap = await getDocs(collection(db, "vendedores"));
+                vendedoresGlobais = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Ordenar por nome
+                vendedoresGlobais.sort((a, b) => (a.nomeUsuario || a.nomeCompleto).localeCompare(b.nomeUsuario || b.nomeCompleto));
+                
+                const cadVendedor = document.getElementById('cadVendedor');
+                if (cadVendedor) {
+                    cadVendedor.innerHTML = '';
+                    vendedoresGlobais.forEach(v => {
+                        const nome = v.nomeUsuario || v.nomeCompleto || "Sem Nome";
+                        cadVendedor.innerHTML += `<option value="${v.id}">${nome}</option>`;
+                    });
+                }
+            } catch (e) {
+                console.error("Erro ao buscar vendedores:", e);
+            }
+        }
+        buscarVendedores();
 
         // Configuração Global (Listeners de Janela)
         window.abrirConfiguracoes = () => {
@@ -1425,6 +1456,11 @@
             limparFormulario();
             editingProductId = null;
             document.querySelector('.create-header h2').innerText = "Item para venda";
+            
+            // Set default seller to current session
+            const cadVendedor = document.getElementById('cadVendedor');
+            if (cadVendedor) cadVendedor.value = sessaoVendedor.id;
+            
             document.getElementById('cadWhatsapp').value = sessaoVendedor.whatsapp || ''; // Auto-preenche whats
             atualizarPrevia();
             document.getElementById('view-catalogue').classList.add('hidden');
@@ -1451,6 +1487,9 @@
             document.getElementById('cadCondicao').value = p.condicao || '';
             document.getElementById('cadDescricao').value = p.desc || '';
             document.getElementById('cadWhatsapp').value = p.whatsapp || '';
+            
+            const cadVendedor = document.getElementById('cadVendedor');
+            if (cadVendedor) cadVendedor.value = p.vendedorId || sessaoVendedor.id;
 
             if (p.fotos) {
                 tempFotosToUpload = p.fotos.map(url => ({ file: null, url: url }));
@@ -1682,6 +1721,10 @@
 
                 showLoading('Finalizando cadastro no banco...');
 
+                // Obter dados do vendedor selecionado
+                const selVendedorId = document.getElementById('cadVendedor').value;
+                const selVData = vendedoresGlobais.find(v => v.id === selVendedorId) || sessaoVendedor;
+
                 const produtoData = {
                     nome,
                     valor: Number(valor),
@@ -1690,9 +1733,9 @@
                     desc,
                     whatsapp,
                     fotos: fotosFinais,
-                    vendedorId: sessaoVendedor.id,
-                    nomeVendedor: sessaoVendedor.nomeUsuario,
-                    fotoVendedor: sessaoVendedor.foto || ''
+                    vendedorId: selVData.id || selVendedorId,
+                    nomeVendedor: selVData.nomeUsuario || selVData.nomeCompleto || 'Masabushi Store',
+                    fotoVendedor: selVData.foto || ''
                 };
 
                 if (editingProductId) {
