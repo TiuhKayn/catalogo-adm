@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Masabushi ADM</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-body: #0F0F11;
+            --bg-card: #1C1C1E;
+            --accent-purple: #8B5CF6;
+            --accent-blue: #3B82F6;
+            --text-main: #FFFFFF;
+            --text-muted: #A0A5B5;
+            --border-color: #374151;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .login-container {
+            background-color: var(--bg-card);
+            padding: 40px;
+            border-radius: 24px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            position: relative;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .login-header i {
+            font-size: 40px;
+            color: var(--accent-purple);
+            margin-bottom: 15px;
+            filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+        }
+
+        .login-header h1 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: -0.5px;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-wrapper i.field-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+        }
+
+        .input-wrapper .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+            padding: 5px;
+        }
+
+        .input-wrapper .toggle-password:hover {
+            color: var(--accent-purple);
+        }
+
+        .form-group input {
+            width: 100%;
+            background-color: #0B0D13;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 12px 15px 12px 45px;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.2s;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus {
+            border-color: var(--accent-purple);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+            margin-top: 10px;
+        }
+
+        .btn-login:hover {
+            filter: brightness(1.1);
+            transform: translateY(-2px);
+        }
+
+        .btn-login:active {
+            transform: translateY(0);
+        }
+
+        .error-message {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .login-footer a {
+            color: var(--accent-blue);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Registro View Control */
+        #register-view {
+            display: none;
+        }
+
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            border-radius: 24px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="loading-overlay" id="loadingOverlay">
+            <i class="fa-solid fa-circle-notch fa-spin fa-2x" style="color: var(--accent-purple)"></i>
+        </div>
+
+        <div class="login-header">
+            <i class="fa-solid fa-shield-halved"></i>
+            <h1>Masabushi ADM</h1>
+            <p>Acesse seu painel de vendedor</p>
+        </div>
+
+        <div id="login-view">
+            <div id="errorMsg" class="error-message">Usuário ou senha inválidos.</div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Nome de Login, E-mail ou Usuário</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-user field-icon"></i>
+                        <input type="text" id="loginEmail" placeholder="Digite seus dados de acesso" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Senha</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock field-icon"></i>
+                        <input type="password" id="password" placeholder="Digite sua senha" required>
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('password', this)"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">Entrar no Painel</button>
+            </form>
+
+            <div class="login-footer">
+                Ainda não tem conta? <a href="javascript:void(0)" onclick="toggleAuthView(true)">Solicitar Acesso</a>
+            </div>
+        </div>
+
+        <!-- VIEW DE REGISTRO -->
+        <div id="register-view">
+            <div class="login-header">
+                <i class="fa-solid fa-user-plus"></i>
+                <h1>Criar Conta</h1>
+                <p>Cadastre-se para vender na Masabushi</p>
+            </div>
+
+            <div id="regErrorMsg" class="error-message">Erro ao realizar cadastro.</div>
+
+            <form id="registerForm">
+                <div class="form-group">
+                    <label>Nome de Login</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-id-card field-icon"></i>
+                        <input type="text" id="regName" placeholder="Ex: Kayn" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Nome de Usuário (Aparecerá nos Anúncios)</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-at field-icon"></i>
+                        <input type="text" id="regUser" placeholder="Ex: kayn_vendas" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>E-mail</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-envelope field-icon"></i>
+                        <input type="email" id="regEmail" placeholder="seu@email.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Senha</label>
+                    <div class="input-wrapper">
+                        <i class="fa-solid fa-lock field-icon"></i>
+                        <input type="password" id="regPass" placeholder="Mínimo 6 caracteres" required>
+                        <i class="fa-solid fa-eye toggle-password" onclick="togglePasswordVisibility('regPass', this)"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Número de Telefone</label>
+                    <div class="input-wrapper">
+                        <i class="fa-brands fa-whatsapp field-icon"></i>
+                        <input type="text" id="regWhatsapp" placeholder="Formatado com DDD (ex: 92...)" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-login">Finalizar Cadastro</button>
+            </form>
+
+            <div class="login-footer">
+                Já tem uma conta? <a href="javascript:void(0)" onclick="toggleAuthView(false)">Fazer Login</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase configuration will be injected here via a script from the main page or re-used -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification, signOut } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+
+        // CONFIGURAÇÃO FIREBASE (Reutilizada da index.html)
+        // Nota: Idealmente isso estaria num arquivo compartilhado
+        const firebaseConfig = {
+            apiKey: "AIzaSyDsvE-Bt_rmSsNflJq5ZktND5JViCsadL0",
+            authDomain: "loja-virtual-f514c.firebaseapp.com",
+            projectId: "loja-virtual-f514c",
+            storageBucket: "loja-virtual-f514c.firebasestorage.app",
+            messagingSenderId: "313055738172",
+            appId: "1:313055738172:web:2c647883e58df6b4574639"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // UI Helpers
+        const loginView = document.getElementById('login-view');
+        const registerView = document.getElementById('register-view');
+        const loading = document.getElementById('loadingOverlay');
+
+        // --- UTILITÁRIOS DE UI ---
+        window.togglePasswordVisibility = (inputId, iconElement) => {
+            const input = document.getElementById(inputId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconElement.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                input.type = 'password';
+                iconElement.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        };
+
+        window.toggleAuthView = (showRegister) => {
+            loginView.style.display = showRegister ? 'none' : 'block';
+            registerView.style.display = showRegister ? 'block' : 'none';
+        };
+
+        // --- CORREÇÃO UX: Habilitar Ctrl+X (Recortar) em campos de senha ---
+        // Browsers bloqueiam Ctrl+X em type="password" por segurança. 
+        // Vamos capturar o comando e apagar a seleção manualmente para o usuário.
+        document.addEventListener('keydown', (e) => {
+            const el = e.target;
+            if (el.tagName === 'INPUT' && el.type === 'password') {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+                    const start = el.selectionStart;
+                    const end = el.selectionEnd;
+                    if (start !== end) {
+                        const val = el.value;
+                        el.value = val.substring(0, start) + val.substring(end);
+                        el.selectionStart = el.selectionEnd = start;
+                        e.preventDefault(); // Evita o alerta/bloqueio do browser
+                    }
+                }
+            }
+        });
+
+        // --- LÓGICA DE LOGIN ---
+        const loginForm = document.getElementById('loginForm');
+        const errorMsg = document.getElementById('errorMsg');
+
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            loading.style.display = 'flex';
+
+            const loginInput = document.getElementById('loginEmail').value.trim();
+            const pass = document.getElementById('password').value;
+
+            try {
+                let emailToLogin = loginInput;
+
+                // Se não for um e-mail formato padrão, pesquisar no banco pelo email atrelado ao Nome de Login
+                if (!loginInput.includes('@')) {
+                    const vRef = collection(db, 'vendedores');
+                    
+                    // Buscar por 'nomeCompleto' (Nome de Login Interno)
+                    let q = query(vRef, where("nomeCompleto", "==", loginInput));
+                    let snap = await getDocs(q);
+
+                    if (snap.empty) {
+                        // Tentar buscar por 'nome' legado (para compatibilidade)
+                        q = query(vRef, where("nome", "==", loginInput));
+                        snap = await getDocs(q);
+                    }
+
+                    if (!snap.empty && snap.docs[0].data().email) {
+                        emailToLogin = snap.docs[0].data().email;
+                    } else {
+                        // Força erro se não achar de jeito nenhum
+                        throw { code: 'auth/user-not-found' };
+                    }
+                }
+
+                // Autenticar com Firebase Auth
+                const userCredential = await signInWithEmailAndPassword(auth, emailToLogin, pass);
+                const user = userCredential.user;
+
+                // Verificar se o email foi confirmado
+                if (!user.emailVerified) {
+                    errorMsg.innerText = "Por favor, verifique seu e-mail antes de fazer login.";
+                    errorMsg.style.display = 'block';
+                    await signOut(auth); // Desloga o usuário não verificado localmente
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                // Buscar os dados do Vendedor no Firestore pelo UID
+                const vDocRef = doc(db, 'vendedores', user.uid);
+                const vDocSnap = await getDoc(vDocRef);
+
+                if (vDocSnap.exists()) {
+                    const vData = vDocSnap.data();
+
+                    const sessionData = {
+                        id: user.uid,
+                        nomeCompleto: vData.nomeCompleto,
+                        nomeUsuario: vData.acesso,
+                        whatsapp: vData.whatsapp || '',
+                        foto: vData.foto || '',
+                        email: user.email
+                    };
+                    localStorage.setItem('masabushi_vendedor', JSON.stringify(sessionData));
+                    window.location.href = 'index.html';
+                } else {
+                    errorMsg.innerText = "Perfil de vendedor não encontrado no banco de dados.";
+                    errorMsg.style.display = 'block';
+                    await signOut(auth);
+                }
+            } catch (error) {
+                console.error("Erro no login:", error);
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                    errorMsg.innerText = "E-mail ou senha inválidos.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    errorMsg.innerText = "Muitas tentativas falhas. Tente novamente mais tarde.";
+                } else {
+                    errorMsg.innerText = "Erro ao conectar: " + error.message;
+                }
+                errorMsg.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // --- LÓGICA DE REGISTRO ---
+        const registerForm = document.getElementById('registerForm');
+        const regErrorMsg = document.getElementById('regErrorMsg');
+
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            regErrorMsg.style.display = 'none';
+            loading.style.display = 'flex';
+
+            const nome = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const acesso = document.getElementById('regUser').value.trim();
+            const whatsapp = document.getElementById('regWhatsapp').value.trim();
+            const senha = document.getElementById('regPass').value;
+
+            try {
+                // Verificar se o nome de usuário (acesso) já existe no Firestore primeiro
+                const vRef = collection(db, 'vendedores');
+                const qExist = query(vRef, where("acesso", "==", acesso));
+                const snapExist = await getDocs(qExist);
+
+                if (!snapExist.empty) {
+                    regErrorMsg.innerText = "Este nome de usuário público já está em uso.";
+                    regErrorMsg.style.display = 'block';
+                    loading.style.display = 'none';
+                    return;
+                }
+
+                // Criar usuário no Firebase Auth (E-mail e Senha)
+                const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+                const user = userCredential.user;
+
+                // Enviar e-mail de verificação
+                await sendEmailVerification(user);
+
+                // Salvar dados complementares no Firestore usando o UID do Auth
+                await setDoc(doc(db, 'vendedores', user.uid), {
+                    nomeCompleto: nome,
+                    acesso: acesso,
+                    whatsapp: whatsapp,
+                    email: email,
+                    criadoEm: new Date()
+                });
+
+                // Deslogar imediatamente para que ele tenha que verificar o e-mail antes de entrar
+                await signOut(auth);
+
+                alert("Cadastro realizado com sucesso! Enviamos um link de verificação para o seu e-mail. Por favor, verifique sua caixa de entrada (ou spam) para ativar sua conta antes de logar.");
+                
+                toggleAuthView(false); // Volta para tela de login
+                registerForm.reset();
+            } catch (error) {
+                console.error("Erro no cadastro:", error);
+                if (error.code === 'auth/email-already-in-use') {
+                    regErrorMsg.innerText = "Este e-mail já está cadastrado.";
+                } else if (error.code === 'auth/weak-password') {
+                    regErrorMsg.innerText = "Sua senha deve ter pelo menos 6 caracteres.";
+                } else {
+                    regErrorMsg.innerText = "Erro ao realizar cadastro: " + error.message;
+                }
+                regErrorMsg.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+            }
+        });
+
+        // Debug: Se não houver nenhum vendedor, criar um padrão para teste
+        // (Isso deve ser removido em produção)
+        window.adminReset = async () => {
+            // Apenas um exemplo se o usuário quiser resetar
+        };
+    </script>
+</body>
+</html>

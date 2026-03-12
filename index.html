@@ -101,6 +101,57 @@
             cursor: not-allowed;
         }
 
+        /* PERFIL VENDEDOR HEADER */
+        .vendor-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 5px 15px;
+            border-radius: 50px;
+            border: 1px solid var(--border-color);
+            margin-right: 10px;
+        }
+
+        .vendor-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-purple);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            color: white;
+            overflow: hidden;
+        }
+
+        .vendor-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .vendor-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+        }
+
+        .btn-logout {
+            background: none;
+            border: none;
+            color: var(--accent-red);
+            cursor: pointer;
+            font-size: 18px;
+            padding: 5px;
+            transition: transform 0.2s;
+        }
+
+        .btn-logout:hover {
+            transform: scale(1.1);
+        }
+
         .btn-blue {
             background-color: var(--accent-blue);
         }
@@ -1045,6 +1096,12 @@
         <header>
             <h1>Catálogo de Peças</h1>
             <div class="header-actions">
+                <div class="vendor-profile" id="headerVendorProfile">
+                    <div class="vendor-avatar" id="headerVendorAvatar"><i class="fa-solid fa-user"></i></div>
+                    <span class="vendor-name" id="headerVendorName">Vendedor</span>
+                    <button class="btn-logout" onclick="window.logoutVendedor()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></button>
+                </div>
+
                 <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="filtrarProdutos()">
                 <select id="catFilter" onchange="filtrarProdutos()">
                     <option value="Todas">Todas categorias</option>
@@ -1220,20 +1277,53 @@
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
-            apiKey: "AIzaSyDsvE-Bt_rmSsNFlJq5ZktND5JViCsadL0",
+            apiKey: "AIzaSyDsvE-Bt_rmSsNflJq5ZktND5JViCsadL0",
             authDomain: "loja-virtual-f514c.firebaseapp.com",
             projectId: "loja-virtual-f514c",
             storageBucket: "loja-virtual-f514c.firebasestorage.app",
             messagingSenderId: "313055738172",
-            appId: "1:313055738172:web:78ee67f6a07a427a574639"
+            appId: "1:313055738172:web:2c647883e58df6b4574639"
         };
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+
+        // --- CONTROLE DE SESSÃO VENDEDOR ---
+        const sessaoVendedor = JSON.parse(localStorage.getItem('masabushi_vendedor'));
+        if (!sessaoVendedor) {
+            window.location.href = 'login.html';
+        }
+
+        window.logoutVendedor = () => {
+            if (confirm('Deseja realmente sair do painel?')) {
+                localStorage.removeItem('masabushi_vendedor');
+                window.location.href = 'login.html';
+            }
+        };
+
+        // Atualiza UI do Header e do Form com dados do Vendedor
+        function atualizarDadosVendedorUI() {
+            if (!sessaoVendedor) return;
+            
+            // Header
+            document.getElementById('headerVendorName').innerText = sessaoVendedor.nomeCompleto || sessaoVendedor.nome;
+            if (sessaoVendedor.foto) {
+                document.getElementById('headerVendorAvatar').innerHTML = `<img src="${sessaoVendedor.foto}">`;
+            }
+
+            // Barra lateral de criação (FB style)
+            const userNameLabel = document.getElementById('userNameLabel');
+            if (userNameLabel) userNameLabel.innerText = sessaoVendedor.nomeUsuario || sessaoVendedor.nome;
+            const userAvatar = document.querySelector('.fb-avatar');
+            if (userAvatar && sessaoVendedor.foto) {
+                userAvatar.innerHTML = `<img src="${sessaoVendedor.foto}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+            }
+        }
+        atualizarDadosVendedorUI();
 
         const IMGBB_API_KEY = 'c680f94a7ed669d54bf725632ae564c4';
 
@@ -1335,6 +1425,7 @@
             limparFormulario();
             editingProductId = null;
             document.querySelector('.create-header h2').innerText = "Item para venda";
+            document.getElementById('cadWhatsapp').value = sessaoVendedor.whatsapp || ''; // Auto-preenche whats
             atualizarPrevia();
             document.getElementById('view-catalogue').classList.add('hidden');
             document.getElementById('view-create').classList.remove('hidden');
@@ -1598,7 +1689,10 @@
                     condicao,
                     desc,
                     whatsapp,
-                    fotos: fotosFinais
+                    fotos: fotosFinais,
+                    vendedorId: sessaoVendedor.id,
+                    nomeVendedor: sessaoVendedor.nomeUsuario,
+                    fotoVendedor: sessaoVendedor.foto || ''
                 };
 
                 if (editingProductId) {
