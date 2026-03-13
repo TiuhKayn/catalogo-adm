@@ -1285,7 +1285,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDsvE-Bt_rmSsNflJq5ZktND5JViCsadL0",
@@ -1354,15 +1354,16 @@
                 const snap = await getDocs(collection(db, "vendedores"));
                 vendedoresGlobais = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Ordenar por nome
-                vendedoresGlobais.sort((a, b) => (a.nomeUsuario || a.nomeCompleto).localeCompare(b.nomeUsuario || b.nomeCompleto));
+                // Ordenar por nome de login
+                vendedoresGlobais.sort((a, b) => (a.nomeCompleto || "").localeCompare(b.nomeCompleto || ""));
                 
                 const cadVendedor = document.getElementById('cadVendedor');
                 if (cadVendedor) {
                     cadVendedor.innerHTML = '';
                     vendedoresGlobais.forEach(v => {
-                        const nome = v.nomeUsuario || v.nomeCompleto || "Sem Nome";
-                        cadVendedor.innerHTML += `<option value="${v.id}">${nome}</option>`;
+                        // Mostra Nome de Login (Privado) + @Usuário (Público) para o Admin identificar
+                        const nomeExibicao = `${v.nomeCompleto || 'Sem Nome'} (@${v.acesso || 'sem_usuario'})`;
+                        cadVendedor.innerHTML += `<option value="${v.id}">${nomeExibicao}</option>`;
                     });
                 }
             } catch (e) {
@@ -1734,7 +1735,7 @@
                     whatsapp,
                     fotos: fotosFinais,
                     vendedorId: selVData.id || selVendedorId,
-                    nomeVendedor: selVData.nomeUsuario || selVData.nomeCompleto || 'Masabushi Store',
+                    nomeVendedor: selVData.acesso || selVData.nomeCompleto || 'Masabushi Store', // Usa o nome de usuário público para a loja
                     fotoVendedor: selVData.foto || ''
                 };
 
