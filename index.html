@@ -1086,6 +1086,54 @@
             border-radius: 50%;
             background: #4E4F50;
         }
+
+        /* RESPONSIVIDADE MOBILE (ADM) */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 15px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .header-actions input,
+            .header-actions select {
+                flex: 1;
+            }
+
+            .vendor-profile {
+                width: 100%;
+                justify-content: space-between;
+                margin-right: 0;
+            }
+
+            main {
+                padding: 15px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .new-item-panel {
+                padding: 15px;
+            }
+
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .modal {
+                width: 95%;
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 
