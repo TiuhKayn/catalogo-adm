@@ -1153,8 +1153,14 @@
             .create-preview {
                 width: 100%;
                 min-height: 700px;
-                padding: 10px;
+                padding: 40px 10px 10px 10px; /* Mais espaço no topo para o título Prévia */
                 overflow: visible;
+                box-sizing: border-box; /* Impede que seja empurrado para a direita */
+            }
+
+            .preview-label {
+                top: 10px;
+                left: 10px;
             }
 
             .live-preview-box {
