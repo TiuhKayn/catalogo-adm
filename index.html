@@ -2005,6 +2005,11 @@
                             ${p.vendido ? 'Desmarcar' : 'Vendido'}
                         </button>
                     </div>
+                    <div class="card-actions-row" style="margin-top: 4px;">
+                        <button class="btn btn-purple" style="width: 100%;" onclick="copiarDescricao('${p.id}', this)">
+                            <i class="fa-regular fa-copy"></i> Copiar Descrição
+                        </button>
+                    </div>
                 </div>
             `;
                 fragment.appendChild(card);
@@ -2059,6 +2064,30 @@
         window.toggleVendido = async (id, estadoAtual) => {
             try { await updateDoc(doc(db, "produtos", id), { vendido: !estadoAtual }); } catch (e) { }
         }
+
+        window.copiarDescricao = (id, btn) => {
+            const p = produtosGlobais.find(x => x.id === id);
+            if (!p || !p.desc) return alert('Este anúncio não possui descrição.');
+
+            navigator.clipboard.writeText(p.desc).then(() => {
+                const originalHTML = btn.innerHTML;
+                const originalBg = btn.style.backgroundColor;
+                const originalColor = btn.style.color;
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+                btn.style.backgroundColor = 'var(--accent-green)';
+                btn.style.color = 'black';
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.backgroundColor = originalBg;
+                    btn.style.color = originalColor;
+                }, 1500);
+            }).catch(e => {
+                console.error("Erro ao copiar:", e);
+                alert("Falha ao copiar a descrição.");
+            });
+        };
 
     </script>
 
