@@ -197,6 +197,9 @@
             flex-direction: column;
             gap: 10px;
             position: relative;
+            /* OTIMIZAÇÃO: Impedir CPU/GPU binding de itens off-screen pesados em blur via content-visibility CSS */
+            content-visibility: auto;
+            contain-intrinsic-size: 380px;
         }
 
         .card.is-vendido {
