@@ -1204,6 +1204,12 @@
                     <option value="Todas">Todas categorias</option>
                     <!-- Preenchido via JS -->
                 </select>
+                <select id="sortFilter" onchange="window.mudarOrdem(this.value)">
+                    <option value="recentes">Recentes</option>
+                    <option value="alfabetica">A-Z</option>
+                    <option value="menorPreco">Menor Preço</option>
+                    <option value="maiorPreco">Maior Preço</option>
+                </select>
                 <select id="statusFilter" onchange="filtrarProdutos()">
                     <option value="Todos">Todos</option>
                     <option value="Ativos">Ativos</option>
@@ -1880,12 +1886,16 @@
         // Listen to Firestore
         onSnapshot(collection(db, "produtos"), (snapshot) => {
             produtosGlobais = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            // Ordenar do mais novo para o mais antigo por padrão
-            produtosGlobais.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
             renderizarProdutos();
         });
 
         // Renderizar
+        window.ordemFixa = 'recentes';
+        window.mudarOrdem = (novaOrdem) => {
+            window.ordemFixa = novaOrdem;
+            renderizarProdutos();
+        };
+
         window.filtrarProdutos = () => renderizarProdutos();
 
         function renderizarProdutos() {
@@ -1893,6 +1903,24 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const cat = document.getElementById('catFilter').value;
             const status = document.getElementById('statusFilter').value;
+
+            // Aplicar ordenação selecionada antes de filtrar (afeta todos os produtos)
+            if (window.ordemFixa === 'alfabetica') {
+                produtosGlobais.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
+            } else if (window.ordemFixa === 'menorPreco' || window.ordemFixa === 'maiorPreco') {
+                produtosGlobais.sort((a, b) => {
+                    let pa = Number(a.valor);
+                    if (a.promocao && a.percentualDesconto) pa = pa - (pa * (a.percentualDesconto / 100));
+
+                    let pb = Number(b.valor);
+                    if (b.promocao && b.percentualDesconto) pb = pb - (pb * (b.percentualDesconto / 100));
+
+                    return window.ordemFixa === 'menorPreco' ? pa - pb : pb - pa;
+                });
+            } else {
+                // 'recentes'
+                produtosGlobais.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
+            }
 
             lista.innerHTML = '';
             const fragment = document.createDocumentFragment();
