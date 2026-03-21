@@ -1768,6 +1768,9 @@
 
         // Cadastrar Novo
         window.salvarNovoProduto = async () => {
+            const btnSubmit = document.querySelector('.btn-fb-submit');
+            if (btnSubmit && btnSubmit.disabled) return;
+
             const nome = document.getElementById('cadTitulo').value.trim();
             const valor = document.getElementById('cadPreco').value;
             const categoria = document.getElementById('cadCategoria').value;
@@ -1777,6 +1780,12 @@
 
             if (!nome || !valor || !categoria || !condicao) {
                 return alert('Por favor, preencha Título, Preço, Categoria e Condição.');
+            }
+
+            if (btnSubmit) {
+                btnSubmit.disabled = true;
+                btnSubmit.style.opacity = '0.5';
+                btnSubmit.innerText = 'Aguarde...';
             }
 
             showLoading(tempFotosToUpload.length > 0 ? `Salvando foto 1 de ${tempFotosToUpload.length}...` : 'Salvando produto...');
@@ -1857,6 +1866,11 @@
                 alert('Erro ao salvar no banco ou Storage: ' + e.message);
             } finally {
                 hideLoading();
+                if (btnSubmit) {
+                    btnSubmit.disabled = false;
+                    btnSubmit.style.opacity = '1';
+                    btnSubmit.innerText = 'Avançar / Publicar';
+                }
             }
         };
 
