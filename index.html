@@ -1518,7 +1518,11 @@
                 cadCategoria.innerHTML = '<option value="" disabled selected hidden>Selecione uma Categoria...</option>';
             }
 
-            categorias.sort().forEach(c => {
+            categorias.sort((a, b) => {
+                if (a === "Outros") return 1;
+                if (b === "Outros") return -1;
+                return a.localeCompare(b);
+            }).forEach(c => {
                 if (catFilter) catFilter.innerHTML += `<option value="${c}">${c}</option>`;
                 if (cadCategoria) cadCategoria.innerHTML += `<option value="${c}">${c}</option>`;
             });
@@ -1905,10 +1909,14 @@
             const status = document.getElementById('statusFilter').value;
 
             // Aplicar ordenação selecionada antes de filtrar (afeta todos os produtos)
-            if (window.ordemFixa === 'alfabetica') {
-                produtosGlobais.sort((a, b) => (a.nome || "").localeCompare(b.nome || ""));
-            } else if (window.ordemFixa === 'menorPreco' || window.ordemFixa === 'maiorPreco') {
-                produtosGlobais.sort((a, b) => {
+            produtosGlobais.sort((a, b) => {
+                const aVendido = a.vendido ? 1 : 0;
+                const bVendido = b.vendido ? 1 : 0;
+                if (aVendido !== bVendido) return aVendido - bVendido;
+
+                if (window.ordemFixa === 'alfabetica') {
+                    return (a.nome || "").localeCompare(b.nome || "");
+                } else if (window.ordemFixa === 'menorPreco' || window.ordemFixa === 'maiorPreco') {
                     let pa = Number(a.valor);
                     if (a.promocao && a.percentualDesconto) pa = pa - (pa * (a.percentualDesconto / 100));
 
@@ -1916,11 +1924,11 @@
                     if (b.promocao && b.percentualDesconto) pb = pb - (pb * (b.percentualDesconto / 100));
 
                     return window.ordemFixa === 'menorPreco' ? pa - pb : pb - pa;
-                });
-            } else {
-                // 'recentes'
-                produtosGlobais.sort((a, b) => new Date(b.data || 0) - new Date(a.data || 0));
-            }
+                } else {
+                    // 'recentes'
+                    return new Date(b.data || 0) - new Date(a.data || 0);
+                }
+            });
 
             lista.innerHTML = '';
             const fragment = document.createDocumentFragment();
