@@ -5,6 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Catálogo de Peças - ADM</title>
+    <!-- OTIMIZAÇÃO: Preconnect para DNS/TLS Handshake inicial de terceiros -->
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://firebasestorage.googleapis.com">
+    <link rel="preconnect" href="https://i.ibb.co">
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -1199,7 +1206,7 @@
                     <button class="btn-logout" onclick="window.logoutVendedor()" title="Sair"><i class="fa-solid fa-right-from-bracket"></i></button>
                 </div>
 
-                <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="filtrarProdutos()">
+                <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="window.debounceFiltrarProdutos()">
                 <select id="catFilter" onchange="filtrarProdutos()">
                     <option value="Todas">Todas categorias</option>
                     <!-- Preenchido via JS -->
@@ -1753,7 +1760,7 @@
                              ondragover="handleDragOver(event)" 
                              ondrop="handleDrop(event, ${index})">
                             <img src="${url}" 
-                                 onload="if(this.naturalWidth < 200 && this.src.includes('ibb.co')) { 
+                                 onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
                                      this.parentElement.style.border = '2px solid #D32F2F'; 
                                      this.parentElement.classList.add('foto-quebrada');
                                      document.getElementById('btnLimparFotosQuebradas').style.display='block';
@@ -1921,6 +1928,14 @@
 
         window.filtrarProdutos = () => renderizarProdutos();
 
+        let debounceTimerAd;
+        window.debounceFiltrarProdutos = () => {
+            clearTimeout(debounceTimerAd);
+            debounceTimerAd = setTimeout(() => {
+                filtrarProdutos();
+            }, 300);
+        };
+
         function renderizarProdutos() {
             const lista = document.getElementById('lista-produtos');
             const search = document.getElementById('searchInput').value.toLowerCase();
@@ -1976,7 +1991,7 @@
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
                                 <div class="img-container">
-                                    <img src="${chunk[i]}" loading="lazy" onerror="this.style.display='none'" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
+                                    <img src="${chunk[i]}" loading="lazy" onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
                                     <i class="fa-solid fa-image-slash" style="position:absolute; z-index:1; font-size: 30px; color:#555;"></i>
                                     <img src="${chunk[i]}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
@@ -2125,8 +2140,8 @@
             
             items.forEach((item, index) => {
                 const img = item.querySelector('img');
-                // Detectamos o placeholder azul do ImgBB (geralmente < 200px) ou falha de rede
-                if (item.style.borderColor === 'red' || (img && img.naturalWidth < 200 && img.src.includes('ibb.co'))) {
+                // Detectamos o placeholder azul do ImgBB (geralmente < 600px) ou falha de rede
+                if (item.style.borderColor === 'red' || (img && img.naturalWidth < 600 && (img.src.includes('ibb.co') || img.src.includes('imgbb.com')))) {
                     indexesToRemove.push(index);
                 }
             });
@@ -2187,8 +2202,8 @@
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
-                    // Se for do ibb.co e for pequeno (< 200px), é o placeholder de "Not Found"
-                    if (url.includes('ibb.co') && img.naturalWidth < 200) {
+                    // Se for do ibb.co e for pequeno (< 600px), é o placeholder de "Not Found" ou erro de imagem
+                    if ((url.includes('ibb.co') || url.includes('imgbb.com')) && img.naturalWidth < 600) {
                         resolve(false);
                     } else {
                         resolve(true);
