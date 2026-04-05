@@ -2048,9 +2048,12 @@
                             ${p.vendido ? 'Desmarcar' : 'Vendido'}
                         </button>
                     </div>
-                    <div class="card-actions-row" style="margin-top: 4px;">
-                        <button class="btn btn-purple" style="width: 100%;" onclick="copiarDescricao('${p.id}', this)">
-                            <i class="fa-regular fa-copy"></i> Copiar Descrição
+                    <div class="card-actions-row" style="margin-top: 4px; display: flex; gap: 8px;">
+                        <button class="btn btn-purple" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;" onclick="copiarTitulo('${p.id}', this)">
+                            <i class="fa-regular fa-copy"></i> Título
+                        </button>
+                        <button class="btn btn-purple" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;" onclick="copiarDescricao('${p.id}', this)">
+                            <i class="fa-regular fa-copy"></i> Descrição
                         </button>
                     </div>
                 </div>
@@ -2107,6 +2110,30 @@
         window.toggleVendido = async (id, estadoAtual) => {
             try { await updateDoc(doc(db, "produtos", id), { vendido: !estadoAtual }); } catch (e) { }
         }
+
+        window.copiarTitulo = (id, btn) => {
+            const p = produtosGlobais.find(x => x.id === id);
+            if (!p || !p.nome) return alert('Este anúncio não possui título.');
+
+            navigator.clipboard.writeText(p.nome).then(() => {
+                const originalHTML = btn.innerHTML;
+                const originalBg = btn.style.backgroundColor;
+                const originalColor = btn.style.color;
+
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
+                btn.style.backgroundColor = 'var(--accent-green)';
+                btn.style.color = 'black';
+
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.style.backgroundColor = originalBg;
+                    btn.style.color = originalColor;
+                }, 1500);
+            }).catch(e => {
+                console.error("Erro ao copiar:", e);
+                alert("Falha ao copiar o título.");
+            });
+        };
 
         window.copiarDescricao = (id, btn) => {
             const p = produtosGlobais.find(x => x.id === id);
