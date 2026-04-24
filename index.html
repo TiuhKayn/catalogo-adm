@@ -1753,14 +1753,15 @@
                 let temErro = false;
 
                 tempFotosToUpload.forEach((item, index) => {
-                    const url = item.url;
+                    const base = item.url;
+                    const url = base.includes('blob:') ? base : `${base}?t=${Date.now()}`;
                     cont.innerHTML += `
                         <div class="foto-temp-item" style="position: relative; width: 31%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid #3E4042; cursor: grab;"
                              draggable="true" 
                              ondragstart="handleDragStart(event, ${index})" 
                              ondragover="handleDragOver(event)" 
                              ondrop="handleDrop(event, ${index})">
-                            <img src="${url}?t=${Date.now()}" 
+                            <img src="${url}" 
                                  onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
                                      this.parentElement.style.border = '2px solid #D32F2F'; 
                                      this.parentElement.classList.add('foto-quebrada');
