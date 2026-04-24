@@ -1335,7 +1335,9 @@
             <div class="live-preview-box">
                 <div class="live-carousel-area">
                     <div class="live-bg-blur" id="liveBgBlur"></div>
-                    <img id="liveMainImg" class="live-main-img" src="" style="display:none;">
+                    <img id="liveMainImg" class="live-main-img" src="" style="display:none;"
+                        onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { this.style.display='none'; document.getElementById('liveFallbackIcon').style.display='block'; document.getElementById('liveBgBlur').style.display='none'; } else { this.style.display='block'; document.getElementById('liveFallbackIcon').style.display='none'; document.getElementById('liveBgBlur').style.display='block'; }"
+                        onerror="this.style.display='none'; document.getElementById('liveFallbackIcon').style.display='block'; document.getElementById('liveBgBlur').style.display='none';">
                     <div id="liveFallbackIcon" style="font-size:60px; color:#B0B3B8; z-index:1;"><i
                             class="fa-solid fa-image"></i></div>
 
@@ -1646,11 +1648,10 @@
             if (tempFotosToUpload.length > 0) {
                 if (currentIndexLive >= tempFotosToUpload.length) currentIndexLive = 0;
 
-                const currentUrl = tempFotosToUpload[currentIndexLive].url;
+                const base = tempFotosToUpload[currentIndexLive].url;
+                const currentUrl = base.includes('blob:') ? base : `${base}?t=${Date.now()}`;
                 mainImg.src = currentUrl;
-                mainImg.style.display = 'block';
                 bgBlur.style.backgroundImage = `url(${currentUrl})`;
-                fallback.style.display = 'none';
 
                 // Controls
                 if (tempFotosToUpload.length > 1) {
