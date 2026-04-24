@@ -1759,7 +1759,7 @@
                              ondragstart="handleDragStart(event, ${index})" 
                              ondragover="handleDragOver(event)" 
                              ondrop="handleDrop(event, ${index})">
-                            <img src="${url}" 
+                            <img src="${url}?t=${Date.now()}" 
                                  onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
                                      this.parentElement.style.border = '2px solid #D32F2F'; 
                                      this.parentElement.classList.add('foto-quebrada');
@@ -2222,7 +2222,10 @@
             }
 
             scannerRunning = false;
-            console.log("[SilentScanner] Faxina concluída.");
+            console.log("[SilentScanner] Faxina concluída. Próxima varredura em 5 minutos.");
+            
+            // RE-LOOP Contínuo: Programa a próxima varredura de forma espaçada para não pesar
+            setTimeout(runSilentScanner, 300000); // 300.000 ms = 5 minutos
         }
 
         async function checkImageLink(url) {
@@ -2237,7 +2240,8 @@
                     }
                 };
                 img.onerror = () => resolve(false);
-                img.src = url;
+                // OTIMIZAÇÃO: Cache-Buster para forçar leitura real do servidor (ignora cache que esconde a morte da imagem)
+                img.src = `${url}?t=${Date.now()}`;
             });
         }
 
