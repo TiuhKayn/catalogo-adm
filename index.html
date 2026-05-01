@@ -1449,6 +1449,9 @@
         }
         atualizarDadosVendedorUI();
 
+        // OTIMIZAÇÃO: Cache-Buster de Sessão. Garante que o catálogo sempre exija a versão mais recente das imagens ao recarregar a página (F5)
+        const SESSION_CACHE_BUSTER = Date.now();
+
         const IMGBB_API_KEY = 'c680f94a7ed669d54bf725632ae564c4';
 
         const categorias = [
@@ -1993,10 +1996,10 @@
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
                                 <div class="img-container">
-                                    <img src="${chunk[i]}" loading="lazy" onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
+                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
                                     <i class="fa-solid fa-image-slash" style="position:absolute; z-index:1; font-size: 30px; color:#555;"></i>
-                                    <img src="${chunk[i]}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
+                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
                                 </div>
                             `;
                         }
