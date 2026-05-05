@@ -1336,7 +1336,7 @@
                 <div class="live-carousel-area">
                     <div class="live-bg-blur" id="liveBgBlur"></div>
                     <img id="liveMainImg" class="live-main-img" src="" style="display:none;"
-                        onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { this.style.display='none'; document.getElementById('liveFallbackIcon').style.display='block'; document.getElementById('liveBgBlur').style.display='none'; } else { this.style.display='block'; document.getElementById('liveFallbackIcon').style.display='none'; document.getElementById('liveBgBlur').style.display='block'; }"
+                        onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { this.style.display='none'; document.getElementById('liveFallbackIcon').style.display='block'; document.getElementById('liveBgBlur').style.display='none'; } else { this.style.display='block'; document.getElementById('liveFallbackIcon').style.display='none'; document.getElementById('liveBgBlur').style.display='block'; }"
                         onerror="this.style.display='none'; document.getElementById('liveFallbackIcon').style.display='block'; document.getElementById('liveBgBlur').style.display='none';">
                     <div id="liveFallbackIcon" style="font-size:60px; color:#B0B3B8; z-index:1;"><i
                             class="fa-solid fa-image"></i></div>
@@ -1765,7 +1765,7 @@
                              ondragover="handleDragOver(event)" 
                              ondrop="handleDrop(event, ${index})">
                             <img src="${url}" 
-                                 onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
+                                 onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
                                      this.parentElement.style.border = '2px solid #D32F2F'; 
                                      this.parentElement.classList.add('foto-quebrada');
                                      document.getElementById('btnLimparFotosQuebradas').style.display='block';
@@ -1996,7 +1996,7 @@
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
                                 <div class="img-container">
-                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" onload="if(this.naturalWidth < 600 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
+                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
                                     <i class="fa-solid fa-image-slash" style="position:absolute; z-index:1; font-size: 30px; color:#555;"></i>
                                     <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
@@ -2172,8 +2172,8 @@
             
             items.forEach((item, index) => {
                 const img = item.querySelector('img');
-                // Detectamos o placeholder azul do ImgBB (geralmente < 600px) ou falha de rede
-                if (item.style.borderColor === 'red' || (img && img.naturalWidth < 600 && (img.src.includes('ibb.co') || img.src.includes('imgbb.com')))) {
+                // Detectamos o placeholder azul do ImgBB (geralmente < 150px) ou falha de rede
+                if (item.style.borderColor === 'red' || (img && img.naturalWidth < 150 && (img.src.includes('ibb.co') || img.src.includes('imgbb.com')))) {
                     indexesToRemove.push(index);
                 }
             });
@@ -2237,8 +2237,8 @@
             return new Promise((resolve) => {
                 const img = new Image();
                 img.onload = () => {
-                    // Se for do ibb.co e for pequeno (< 600px), é o placeholder de "Not Found" ou erro de imagem
-                    if ((url.includes('ibb.co') || url.includes('imgbb.com')) && img.naturalWidth < 600) {
+                    // Se for do ibb.co e for pequeno (< 150px), é o placeholder de "Not Found" ou erro de imagem
+                    if ((url.includes('ibb.co') || url.includes('imgbb.com')) && img.naturalWidth < 150) {
                         resolve(false);
                     } else {
                         resolve(true);
@@ -2258,3 +2258,4 @@
 </body>
 
 </html>
+
