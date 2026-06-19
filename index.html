@@ -1207,6 +1207,9 @@
                 </div>
 
                 <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="window.debounceFiltrarProdutos()">
+                <select id="vendedorFilter" onchange="filtrarProdutos()">
+                    <option value="Todos">Todos vendedores</option>
+                </select>
                 <select id="catFilter" onchange="filtrarProdutos()">
                     <option value="Todas">Todas categorias</option>
                     <!-- Preenchido via JS -->
@@ -1478,14 +1481,22 @@
                 vendedoresGlobais.sort((a, b) => (a.nomeCompleto || "").localeCompare(b.nomeCompleto || ""));
                 
                 const cadVendedor = document.getElementById('cadVendedor');
+                const vendFilter = document.getElementById('vendedorFilter');
+                
+                if (vendFilter) {
+                    vendFilter.innerHTML = '<option value="Todos">Todos vendedores</option>';
+                }
+                
                 if (cadVendedor) {
                     cadVendedor.innerHTML = '';
-                    vendedoresGlobais.forEach(v => {
-                        // Mostra Nome de Login (Privado) + @Usuário (Público) para o Admin identificar
-                        const nomeExibicao = `${v.nomeCompleto || 'Sem Nome'} (@${v.acesso || 'sem_usuario'})`;
-                        cadVendedor.innerHTML += `<option value="${v.id}">${nomeExibicao}</option>`;
-                    });
                 }
+                
+                vendedoresGlobais.forEach(v => {
+                    // Mostra Nome de Login (Privado) + @Usuário (Público) para o Admin identificar
+                    const nomeExibicao = `${v.nomeCompleto || 'Sem Nome'} (@${v.acesso || 'sem_usuario'})`;
+                    if (cadVendedor) cadVendedor.innerHTML += `<option value="${v.id}">${nomeExibicao}</option>`;
+                    if (vendFilter) vendFilter.innerHTML += `<option value="${v.id}">${nomeExibicao}</option>`;
+                });
             } catch (e) {
                 console.error("Erro ao buscar vendedores:", e);
             }
@@ -1946,6 +1957,8 @@
             const search = document.getElementById('searchInput').value.toLowerCase();
             const cat = document.getElementById('catFilter').value;
             const status = document.getElementById('statusFilter').value;
+            const vendedorEl = document.getElementById('vendedorFilter');
+            const vendedor = vendedorEl ? vendedorEl.value : 'Todos';
 
             // Aplicar ordenação selecionada antes de filtrar (afeta todos os produtos)
             produtosGlobais.sort((a, b) => {
@@ -1979,6 +1992,7 @@
                 if (status === 'Vendidos' && !p.vendido) return;
                 if (status === 'Ativos' && p.vendido) return;
                 if (status === 'Promocao' && !p.promocao) return;
+                if (vendedor !== 'Todos' && p.vendedorId !== vendedor) return;
 
                 const card = document.createElement('div');
                 card.className = `card ${p.vendido ? 'is-vendido' : ''} ${p.promocao ? 'is-promocao' : ''}`;
