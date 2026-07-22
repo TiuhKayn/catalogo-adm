@@ -1309,7 +1309,7 @@
 
                 <div class="fb-input-group" style="margin-top: 5px;">
                     <label>Vendedor do Anúncio</label>
-                    <select id="cadVendedor">
+                    <select id="cadVendedor" onchange="window.atualizarNomeVendedorPrevia()">
                         <!-- Preenchido via JS -->
                     </select>
                 </div>
@@ -1587,6 +1587,23 @@
             btn.disabled = false;
         };
 
+        // Atualiza nome do vendedor na prévia e no header do form
+        window.atualizarNomeVendedorPrevia = () => {
+            const cadVendedor = document.getElementById('cadVendedor');
+            if (!cadVendedor) return;
+            const selOption = cadVendedor.options[cadVendedor.selectedIndex];
+            const selId = cadVendedor.value;
+            const vData = vendedoresGlobais.find(v => v.id === selId);
+            // Usa o nome público (@acesso) ou nomeCompleto
+            const nomeExibir = vData ? (vData.nomeCompleto || vData.acesso || 'Vendedor') : (sessaoVendedor.nomeCompleto || sessaoVendedor.acesso || 'Vendedor');
+            
+            const prevSeller = document.getElementById('prevSellerName');
+            if (prevSeller) prevSeller.innerText = nomeExibir;
+            
+            const userLabel = document.getElementById('userNameLabel');
+            if (userLabel) userLabel.innerText = nomeExibir;
+        };
+
         // FB View Handlers
         window.abrirViewCriacao = () => {
             limparFormulario();
@@ -1599,6 +1616,7 @@
             
             document.getElementById('cadWhatsapp').value = sessaoVendedor.whatsapp || ''; // Auto-preenche whats
             atualizarPrevia();
+            atualizarNomeVendedorPrevia();
             document.getElementById('view-catalogue').classList.add('hidden');
             document.getElementById('view-create').classList.remove('hidden');
         };
@@ -1626,6 +1644,7 @@
             
             const cadVendedor = document.getElementById('cadVendedor');
             if (cadVendedor) cadVendedor.value = p.vendedorId || sessaoVendedor.id;
+            atualizarNomeVendedorPrevia();
 
             if (p.fotos) {
                 tempFotosToUpload = p.fotos.map(url => ({ file: null, url: url }));
@@ -2010,10 +2029,10 @@
                         for (let i = 0; i < chunk.length; i++) {
                             fotosHtml += `
                                 <div class="img-container">
-                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
+                                    <img src="${chunk[i]}" loading="lazy" onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: -20px; left: -20px; width: calc(100% + 40px); height: calc(100% + 40px); object-fit: cover; filter: blur(15px); z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
                                     <i class="fa-solid fa-image-slash" style="position:absolute; z-index:1; font-size: 30px; color:#555;"></i>
-                                    <img src="${chunk[i]}?s=${SESSION_CACHE_BUSTER}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
+                                    <img src="${chunk[i]}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
                                 </div>
                             `;
                         }
@@ -2247,21 +2266,50 @@
             setTimeout(runSilentScanner, 300000); // 300.000 ms = 5 minutos
         }
 
-        async function checkImageLink(url) {
+        // Verificação ÚNICA de uma imagem com timeout
+        function singleCheckImage(url, timeoutMs) {
             return new Promise((resolve) => {
                 const img = new Image();
+                const timer = setTimeout(() => {
+                    img.onload = null;
+                    img.onerror = null;
+                    img.src = '';
+                    resolve('timeout');
+                }, timeoutMs);
+
                 img.onload = () => {
-                    // Se for do ibb.co e for pequeno (< 150px), é o placeholder de "Not Found" ou erro de imagem
+                    clearTimeout(timer);
                     if ((url.includes('ibb.co') || url.includes('imgbb.com')) && img.naturalWidth < 150) {
-                        resolve(false);
+                        resolve('broken');
                     } else {
-                        resolve(true);
+                        resolve('ok');
                     }
                 };
-                img.onerror = () => resolve(false);
-                // OTIMIZAÇÃO: Cache-Buster para forçar leitura real do servidor (ignora cache que esconde a morte da imagem)
+                img.onerror = () => {
+                    clearTimeout(timer);
+                    resolve('error');
+                };
                 img.src = `${url}?t=${Date.now()}`;
             });
+        }
+
+        // Double-check: a foto precisa falhar DUAS vezes com intervalo entre tentativas para ser considerada morta
+        async function checkImageLink(url) {
+            const first = await singleCheckImage(url, 15000); // 15s timeout
+            if (first === 'ok') return true;
+
+            // Se falhou/timeout na primeira, espera 3s e tenta de novo
+            console.log(`[SilentScanner] Primeira tentativa falhou (${first}), re-verificando em 3s...`);
+            await new Promise(r => setTimeout(r, 3000));
+
+            const second = await singleCheckImage(url, 20000); // 20s timeout na segunda
+            if (second === 'ok') {
+                console.log(`[SilentScanner] Segunda tentativa OK! Foto válida.`);
+                return true;
+            }
+
+            console.warn(`[SilentScanner] Confirmado link morto após 2 tentativas (${first}, ${second}).`);
+            return false;
         }
 
         // Inicia o scanner após 5 segundos da abertura da página (espera carregar fotos)
