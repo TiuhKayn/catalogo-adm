@@ -2238,17 +2238,27 @@
             showLoading('Excluindo...');
             try {
                 const p = produtosGlobais.find(x => x.id === id);
-                if (p && p.fotosIds) {
+                console.log(`%c[Delete] 🗑️ Excluindo produto: ${p?.nome || id}`, 'color: #FF4444; font-weight: bold;');
+                if (p && p.fotosIds && p.fotosIds.length > 0) {
+                    console.log(`%c[Delete] 📸 ${p.fotosIds.length} foto(s) para apagar do Cloudinary...`, 'color: #FFA500;');
                     for (const pid of p.fotosIds) {
-                        await deleteFromCloudinary(pid);
+                        if (pid) {
+                            console.log(`%c[Delete] ⏳ Apagando do Cloudinary: ${pid}`, 'color: #FFA500;');
+                            await deleteFromCloudinary(pid);
+                            console.log(`%c[Delete] ✅ Foto apagada do Cloudinary: ${pid}`, 'color: #00C853;');
+                        }
                     }
+                } else {
+                    console.warn('[Delete] ⚠️ Produto sem fotosIds — imagens não serão apagadas do Cloudinary (produto antigo pré-migração).');
                 }
                 await deleteDoc(doc(db, "produtos", id));
+                console.log(`%c[Delete] 🎉 Produto removido do banco com sucesso!`, 'color: #00C853; font-weight: bold;');
             } catch (e) {
                 alert('Erro ao excluir'); console.error(e);
             }
             hideLoading();
         }
+
 
         window.togglePromo = async (id, estadoAtual) => {
             try {
