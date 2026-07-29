@@ -1476,38 +1476,49 @@
         const deleteFromCloudinary = async (publicId) => {
             if (!publicId) return false;
             const cleanPublicId = publicId.trim();
-            const apiKey = CLOUDINARY_API_KEY.trim();
-            const apiSecret = CLOUDINARY_API_SECRET.trim();
             const timestamp = Math.round(Date.now() / 1000);
 
-            for (const algo of ['SHA-1', 'SHA-256']) {
-                try {
-                    const strToSign = `public_id=${cleanPublicId}&timestamp=${timestamp}${apiSecret}`;
-                    const signature = await hashString(strToSign, algo);
+            const creds = [
+                { apiKey: '852528141186497', apiSecret: 'b8gDEYWAuRd-qrWDT2elJ6Glx8Q' },
+                { apiKey: '269371688234974', apiSecret: 'c2XBjV9lJW2zayU-77zz65QIMtI' }
+            ];
 
-                    const fd = new FormData();
-                    fd.append('public_id', cleanPublicId);
-                    fd.append('timestamp', timestamp);
-                    fd.append('api_key', apiKey);
-                    fd.append('signature', signature);
-                    if (algo === 'SHA-256') {
-                        fd.append('signature_algorithm', 'sha256');
+            for (const cred of creds) {
+                for (const withInvalidate of [false, true]) {
+                    for (const algo of ['SHA-1', 'SHA-256']) {
+                        try {
+                            let strToSign = '';
+                            if (withInvalidate) {
+                                strToSign = `invalidate=true&public_id=${cleanPublicId}&timestamp=${timestamp}${cred.apiSecret}`;
+                            } else {
+                                strToSign = `public_id=${cleanPublicId}&timestamp=${timestamp}${cred.apiSecret}`;
+                            }
+
+                            const signature = await hashString(strToSign, algo);
+
+                            const fd = new FormData();
+                            fd.append('public_id', cleanPublicId);
+                            fd.append('timestamp', timestamp);
+                            fd.append('api_key', cred.apiKey);
+                            fd.append('signature', signature);
+                            if (withInvalidate) fd.append('invalidate', 'true');
+                            if (algo === 'SHA-256') fd.append('signature_algorithm', 'sha256');
+
+                            const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/destroy`, { method: 'POST', body: fd });
+                            const data = await res.json();
+                            console.log(`[Cloudinary] Delete (key=${cred.apiKey.slice(-4)}, inv=${withInvalidate}, algo=${algo}) resposta:`, data);
+
+                            if (data.result === 'ok') {
+                                console.log('[Cloudinary] ✅ Deletado com sucesso do Cloudinary:', cleanPublicId);
+                                return true;
+                            }
+                        } catch (e) {
+                            console.error('[Cloudinary] Erro na tentativa:', e);
+                        }
                     }
-
-                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/destroy`, { method: 'POST', body: fd });
-                    const data = await res.json();
-                    console.log(`[Cloudinary] Delete (${algo}) resposta:`, data);
-
-                    if (data.result === 'ok') {
-                        console.log('[Cloudinary] ✅ Deletado com sucesso:', cleanPublicId);
-                        return true;
-                    } else if (data.error && data.error.message) {
-                        console.warn(`[Cloudinary] ⚠️ Falha (${algo}):`, data.error.message);
-                    }
-                } catch(e) {
-                    console.error(`[Cloudinary] Erro (${algo}):`, e);
                 }
             }
+            console.error('[Cloudinary] ❌ Todas as tentativas de exclusão falharam para:', cleanPublicId);
             return false;
         };
 
