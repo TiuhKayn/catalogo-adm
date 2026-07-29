@@ -1207,6 +1207,7 @@
                 </div>
 
                 <input type="text" id="searchInput" placeholder="Pesquisar por nome..." onkeyup="window.debounceFiltrarProdutos()">
+                <button class="btn btn-purple" onclick="abrirAprovacaoContas()"><i class="fa-solid fa-users-gear"></i> Aprovar Contas</button>
                 <select id="vendedorFilter" onchange="filtrarProdutos()">
                     <option value="Todos">Todos vendedores</option>
                 </select>
@@ -1270,11 +1271,6 @@
                 <div id="cadFotosPreview" style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
                     <!-- Miniaturas renderizadas via JS -->
                 </div>
-                <!-- NOVO: Limpeza de fotos quebradas -->
-                <button id="btnLimparFotosQuebradas" onclick="limparFotosQuebradasEditor()" 
-                        style="display:none; width: 100%; background: #D32F2F; color: white; border: none; padding: 6px; border-radius: 4px; font-size: 11px; margin-top: 5px; cursor: pointer;">
-                    <i class="fa-solid fa-broom"></i> Detectamos fotos apagadas! Clique para limpar.
-                </button>
 
                 <div style="font-size: 12px; font-weight: 600; margin: 10px 0 5px; color:#B0B3B8;">Obrigatório</div>
 
@@ -1397,6 +1393,19 @@
         </div>
     </div>
 
+    <!-- MODAL DE APROVAÇÃO DE CONTAS -->
+    <div id="aprovarOverlay" class="modal-overlay hidden" onclick="fecharAprovacaoContas()"></div>
+    <div id="aprovarModal" class="modal hidden" style="max-height: 80vh; overflow-y: auto;">
+        <h3 class="settings-title">Contas Pendentes</h3>
+        <div id="listaContasPendentes" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;">
+            <!-- Renderizado via JS -->
+            <div style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma conta pendente.</div>
+        </div>
+        <div class="settings-actions">
+            <button class="btn-settings-cancel" onclick="fecharAprovacaoContas()">Fechar</button>
+        </div>
+    </div>
+
     <!-- Loading -->
     <div class="loading-overlay" id="loading">
         <div class="spinner"></div>
@@ -1406,6 +1415,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, doc, updateDoc, deleteDoc, deleteField, setDoc, getDocs, getDoc } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyDsvE-Bt_rmSsNflJq5ZktND5JViCsadL0",
@@ -1418,6 +1428,7 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
+        const storage = getStorage(app);
 
         // --- CONTROLE DE SESSÃO VENDEDOR ---
         const sessaoVendedor = JSON.parse(localStorage.getItem('masabushi_vendedor'));
@@ -1454,8 +1465,6 @@
 
         // OTIMIZAÇÃO: Cache-Buster de Sessão. Garante que o catálogo sempre exija a versão mais recente das imagens ao recarregar a página (F5)
         const SESSION_CACHE_BUSTER = Date.now();
-
-        const IMGBB_API_KEY = 'c680f94a7ed669d54bf725632ae564c4';
 
         const categorias = [
             "Controle", "Resfriadores", "Teclado", "Gabinete", "Fonte",
@@ -1513,6 +1522,79 @@
         window.fecharConfiguracoes = () => {
             document.getElementById('configOverlay').classList.add('hidden');
             document.getElementById('configModal').classList.add('hidden');
+        };
+
+        // --- SISTEMA DE APROVAÇÃO DE CONTAS ---
+        window.abrirAprovacaoContas = async () => {
+            document.getElementById('aprovarOverlay').classList.remove('hidden');
+            document.getElementById('aprovarModal').classList.remove('hidden');
+            const lista = document.getElementById('listaContasPendentes');
+            lista.innerHTML = '<div class="spinner" style="margin: 20px auto;"></div>';
+
+            try {
+                const snap = await getDocs(collection(db, "vendedores"));
+                const pendentes = snap.docs.map(d => ({id: d.id, ...d.data()})).filter(v => v.status === 'pendente');
+                
+                if (pendentes.length === 0) {
+                    lista.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Nenhuma conta aguardando aprovação.</div>';
+                    return;
+                }
+
+                lista.innerHTML = '';
+                pendentes.forEach(p => {
+                    lista.innerHTML += `
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <div style="font-weight: bold; color: white;">${p.nomeCompleto} (@${p.acesso})</div>
+                                <div style="font-size: 12px; color: var(--text-muted);">${p.email}</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-blue" onclick="aprovarConta('${p.id}')" style="padding: 6px 12px; font-size: 12px;">Aprovar</button>
+                                <button class="btn btn-red" onclick="rejeitarConta('${p.id}')" style="padding: 6px 12px; font-size: 12px;">Rejeitar</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch(e) {
+                console.error(e);
+                lista.innerHTML = '<div style="color: red; text-align: center; padding: 20px;">Erro ao buscar contas.</div>';
+            }
+        };
+
+        window.fecharAprovacaoContas = () => {
+            document.getElementById('aprovarOverlay').classList.add('hidden');
+            document.getElementById('aprovarModal').classList.add('hidden');
+        };
+
+        window.aprovarConta = async (id) => {
+            if (!confirm('Deseja realmente aprovar esta conta?')) return;
+            try {
+                showLoading('Aprovando...');
+                await updateDoc(doc(db, "vendedores", id), { status: 'aprovado' });
+                alert('Conta aprovada com sucesso!');
+                buscarVendedores();
+                abrirAprovacaoContas();
+            } catch(e) {
+                console.error(e);
+                alert('Erro ao aprovar conta.');
+            } finally {
+                hideLoading();
+            }
+        };
+
+        window.rejeitarConta = async (id) => {
+            if (!confirm('Deseja realmente rejeitar (excluir) esta conta?')) return;
+            try {
+                showLoading('Rejeitando...');
+                await deleteDoc(doc(db, "vendedores", id));
+                alert('Conta rejeitada com sucesso!');
+                abrirAprovacaoContas();
+            } catch(e) {
+                console.error(e);
+                alert('Erro ao rejeitar conta.');
+            } finally {
+                hideLoading();
+            }
         };
 
         // Attach listeners when DOM is ready
@@ -1795,16 +1877,6 @@
                              ondragover="handleDragOver(event)" 
                              ondrop="handleDrop(event, ${index})">
                             <img src="${url}" 
-                                 onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) { 
-                                     this.parentElement.style.border = '2px solid #D32F2F'; 
-                                     this.parentElement.classList.add('foto-quebrada');
-                                     document.getElementById('btnLimparFotosQuebradas').style.display='block';
-                                 }"
-                                 onerror="
-                                     this.parentElement.style.border='2px solid #D32F2F'; 
-                                     this.parentElement.classList.add('foto-quebrada');
-                                     document.getElementById('btnLimparFotosQuebradas').style.display='block';
-                                 "
                                  style="width: 100%; height: 100%; object-fit: cover;">
                             <button onclick="removerFotoTemp(${index})" style="position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 10px; cursor: pointer; z-index: 10;">
                                 <i class="fa-solid fa-xmark"></i>
@@ -1864,34 +1936,61 @@
 
             showLoading(tempFotosToUpload.length > 0 ? `Salvando foto 1 de ${tempFotosToUpload.length}...` : 'Salvando produto...');
             try {
-                // Fazer upload das fotos no ImgBB
+                // Fazer upload das fotos no Firebase Storage com compressão
                 let fotosFinais = [];
-                if (tempFotosToUpload.length > 0 && IMGBB_API_KEY === 'COLE_SUD_CHAVE_AQUI') {
-                    throw new Error("Você esqueceu de colar a chave do ImgBB no código! Procure a variável IMGBB_API_KEY lá pro começo do Javascript e coloque a sua chave.");
-                }
+                
+                const compressImage = (file) => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.readAsDataURL(file);
+                        reader.onload = event => {
+                            const img = new Image();
+                            img.src = event.target.result;
+                            img.onload = () => {
+                                const canvas = document.createElement('canvas');
+                                let width = img.width;
+                                let height = img.height;
+                                const max_size = 1200;
+
+                                if (width > height) {
+                                    if (width > max_size) {
+                                        height *= max_size / width;
+                                        width = max_size;
+                                    }
+                                } else {
+                                    if (height > max_size) {
+                                        width *= max_size / height;
+                                        height = max_size;
+                                    }
+                                }
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+                                canvas.toBlob((blob) => {
+                                    resolve(blob);
+                                }, 'image/jpeg', 0.8);
+                            };
+                            img.onerror = error => reject(error);
+                        };
+                        reader.onerror = error => reject(error);
+                    });
+                };
 
                 for (let i = 0; i < tempFotosToUpload.length; i++) {
                     const item = tempFotosToUpload[i];
 
-                    if (item.file) { // Nova foto -> Upload para ImgBB
-                        showLoading(`Salvando foto ${i + 1} de ${tempFotosToUpload.length}...`);
-                        console.log(`[ImgBB] Fazendo upload da foto ${i + 1}/${tempFotosToUpload.length}...`);
-
-                        const formData = new FormData();
-                        formData.append("image", item.file);
-
-                        const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                            method: "POST",
-                            body: formData
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            fotosFinais.push(data.data.url);
-                        } else {
-                            throw new Error("Erro do ImgBB: " + (data.error ? data.error.message : "Desconhecido. Verifique sua chave de API!"));
-                        }
+                    if (item.file) { // Nova foto -> Upload para Firebase Storage
+                        showLoading(`Comprimindo foto ${i + 1} de ${tempFotosToUpload.length}...`);
+                        const compressedBlob = await compressImage(item.file);
+                        
+                        showLoading(`Salvando foto ${i + 1} no Firebase Storage...`);
+                        const fileName = `produtos/${Date.now()}_${Math.random().toString(36).substring(7)}.jpg`;
+                        const storageRef = ref(storage, fileName);
+                        
+                        await uploadBytes(storageRef, compressedBlob);
+                        const downloadUrl = await getDownloadURL(storageRef);
+                        fotosFinais.push(downloadUrl);
                     } else { // Foto antiga ja hospedada
                         fotosFinais.push(item.url);
                     }
@@ -1922,6 +2021,20 @@
                     produtoData.promocao = pBefore.promocao || false;
                     if (pBefore.percentualDesconto) produtoData.percentualDesconto = pBefore.percentualDesconto;
                     if (pBefore.promocaoFim) produtoData.promocaoFim = pBefore.promocaoFim;
+
+                    // Limpeza física no Storage de fotos removidas
+                    const urlsToDelete = (pBefore.fotos || []).filter(url => !fotosFinais.includes(url));
+                    for (const url of urlsToDelete) {
+                        try {
+                            if (url.includes('firebasestorage.googleapis.com')) {
+                                const fileRef = ref(storage, url);
+                                await deleteObject(fileRef);
+                                console.log('Imagem apagada fisicamente do Storage:', url);
+                            }
+                        } catch (err) {
+                            console.error('Erro ao deletar imagem antiga do storage:', err);
+                        }
+                    }
 
                     await updateDoc(doc(db, "produtos", editingProductId), produtoData);
                     alert('Produto Atualizado com Sucesso!');
@@ -2102,9 +2215,22 @@
         }
 
         window.deletarProduto = async (id) => {
-            if (!confirm('Certeza que deseja excluir este produto?')) return;
+            if (!confirm('Certeza que deseja excluir este produto e apagar as fotos do banco de dados definitivamente?')) return;
             showLoading('Excluindo...');
             try {
+                const p = produtosGlobais.find(x => x.id === id);
+                if (p && p.fotos) {
+                    for (const url of p.fotos) {
+                        try {
+                            if (url.includes('firebasestorage.googleapis.com')) {
+                                const fileRef = ref(storage, url);
+                                await deleteObject(fileRef);
+                            }
+                        } catch (err) {
+                            console.error('Erro ao deletar foto do produto:', err);
+                        }
+                    }
+                }
                 await deleteDoc(doc(db, "produtos", id));
             } catch (e) {
                 alert('Erro ao excluir'); console.error(e);
@@ -2196,125 +2322,6 @@
                 alert("Falha ao copiar a descrição.");
             });
         };
-
-        // Função para detecção e limpeza de fotos órfãs (ImgBB Not Found)
-        window.limparFotosQuebradasEditor = () => {
-            const initialCount = tempFotosToUpload.length;
-            const items = document.querySelectorAll('.foto-temp-item');
-            let indexesToRemove = [];
-            
-            items.forEach((item, index) => {
-                const img = item.querySelector('img');
-                // Detectamos o placeholder azul do ImgBB (geralmente < 150px) ou falha de rede
-                if (item.style.borderColor === 'red' || (img && img.naturalWidth < 150 && (img.src.includes('ibb.co') || img.src.includes('imgbb.com')))) {
-                    indexesToRemove.push(index);
-                }
-            });
-
-            if (indexesToRemove.length === 0) {
-                return alert('Nenhuma foto quebrada detectada no momento.');
-            }
-
-            if (confirm(`Detectamos ${indexesToRemove.length} link(s) quebrado(s). Deseja remover do anúncio?`)) {
-                // Remove do fim para o começo para não zoar os indexes
-                indexesToRemove.reverse().forEach(idx => {
-                    tempFotosToUpload.splice(idx, 1);
-                });
-                renderizarMinigaleriasTemporarias();
-                atualizarPrevia();
-                alert('Limpeza concluída! Clique em "Avançar / Publicar" para salvar as alterações no banco.');
-            }
-        };
-
-        // --- SILENT SCANNER: Automação Total de Limpeza ---
-        let scannerRunning = false;
-        async function runSilentScanner() {
-            if (scannerRunning || produtosGlobais.length === 0) return;
-            scannerRunning = true;
-            console.log("[SilentScanner] Iniciando faxina automática...");
-
-            for (const p of produtosGlobais) {
-                if (!p.fotos || p.fotos.length === 0) continue;
-
-                let linksQuebradosNesteProduto = [];
-                for (let i = 0; i < p.fotos.length; i++) {
-                    const url = p.fotos[i];
-                    const isValid = await checkImageLink(url);
-                    if (!isValid) {
-                        linksQuebradosNesteProduto.push(i);
-                        console.warn(`[SilentScanner] Detectado link morto no produto: ${p.nome}`);
-                    }
-                }
-
-                if (linksQuebradosNesteProduto.length > 0) {
-                    const novasFotos = p.fotos.filter((_, idx) => !linksQuebradosNesteProduto.includes(idx));
-                    try {
-                        await updateDoc(doc(db, "produtos", p.id), { fotos: novasFotos });
-                        console.log(`[SilentScanner] Sucesso: Removidos ${linksQuebradosNesteProduto.length} links de ${p.nome}`);
-                    } catch (e) {
-                        console.error("[SilentScanner] Erro ao atualizar banco:", e);
-                    }
-                }
-                // Pequeno delay entre produtos para não pesar
-                await new Promise(r => setTimeout(r, 1000));
-            }
-
-            scannerRunning = false;
-            console.log("[SilentScanner] Faxina concluída. Próxima varredura em 5 minutos.");
-            
-            // RE-LOOP Contínuo: Programa a próxima varredura de forma espaçada para não pesar
-            setTimeout(runSilentScanner, 300000); // 300.000 ms = 5 minutos
-        }
-
-        // Verificação ÚNICA de uma imagem com timeout
-        function singleCheckImage(url, timeoutMs) {
-            return new Promise((resolve) => {
-                const img = new Image();
-                const timer = setTimeout(() => {
-                    img.onload = null;
-                    img.onerror = null;
-                    img.src = '';
-                    resolve('timeout');
-                }, timeoutMs);
-
-                img.onload = () => {
-                    clearTimeout(timer);
-                    if ((url.includes('ibb.co') || url.includes('imgbb.com')) && img.naturalWidth < 150) {
-                        resolve('broken');
-                    } else {
-                        resolve('ok');
-                    }
-                };
-                img.onerror = () => {
-                    clearTimeout(timer);
-                    resolve('error');
-                };
-                img.src = `${url}?t=${Date.now()}`;
-            });
-        }
-
-        // Double-check: a foto precisa falhar DUAS vezes com intervalo entre tentativas para ser considerada morta
-        async function checkImageLink(url) {
-            const first = await singleCheckImage(url, 15000); // 15s timeout
-            if (first === 'ok') return true;
-
-            // Se falhou/timeout na primeira, espera 3s e tenta de novo
-            console.log(`[SilentScanner] Primeira tentativa falhou (${first}), re-verificando em 3s...`);
-            await new Promise(r => setTimeout(r, 3000));
-
-            const second = await singleCheckImage(url, 20000); // 20s timeout na segunda
-            if (second === 'ok') {
-                console.log(`[SilentScanner] Segunda tentativa OK! Foto válida.`);
-                return true;
-            }
-
-            console.warn(`[SilentScanner] Confirmado link morto após 2 tentativas (${first}, ${second}).`);
-            return false;
-        }
-
-        // Inicia o scanner após 5 segundos da abertura da página (espera carregar fotos)
-        setTimeout(runSilentScanner, 5000);
-
     </script>
 
 </body>

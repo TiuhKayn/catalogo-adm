@@ -440,13 +440,22 @@
                 if (vDocSnap.exists()) {
                     const vData = vDocSnap.data();
 
+                    if (vData.status === 'pendente') {
+                        errorMsg.innerText = "Sua conta está aguardando aprovação do dono da loja. Você não pode acessar o painel ainda.";
+                        errorMsg.style.display = 'block';
+                        await signOut(auth);
+                        loading.style.display = 'none';
+                        return;
+                    }
+
                     const sessionData = {
                         id: user.uid,
                         nomeCompleto: vData.nomeCompleto,
                         nomeUsuario: vData.acesso,
                         whatsapp: vData.whatsapp || '',
                         foto: vData.foto || '',
-                        email: user.email
+                        email: user.email,
+                        status: vData.status || 'aprovado'
                     };
                     localStorage.setItem('masabushi_vendedor', JSON.stringify(sessionData));
                     window.location.href = 'index.html';
@@ -511,13 +520,14 @@
                     acesso: acesso,
                     whatsapp: whatsapp,
                     email: email,
-                    criadoEm: new Date()
+                    criadoEm: new Date(),
+                    status: 'pendente' // NOVO: Trava de Segurança
                 });
 
                 // Deslogar imediatamente para que ele tenha que verificar o e-mail antes de entrar
                 await signOut(auth);
 
-                alert("Cadastro realizado com sucesso! Enviamos um link de verificação para o seu e-mail. Por favor, verifique sua caixa de entrada (ou spam) para ativar sua conta antes de logar.");
+                alert("Cadastro realizado com sucesso! Sua conta foi enviada para análise do Administrador. Você receberá um e-mail de verificação, mas só poderá entrar no painel quando for aprovado.");
                 
                 toggleAuthView(false); // Volta para tela de login
                 registerForm.reset();
