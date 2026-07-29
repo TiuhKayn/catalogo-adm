@@ -1997,20 +1997,32 @@
                 let fotosFinais = [];
                 let fotosIdsFinais = [];
 
+                const totalFotos = tempFotosToUpload.filter(i => i.file).length;
+                console.log(`%c[Upload] 🚀 Iniciando upload de ${totalFotos} foto(s) nova(s)...`, 'color: #8A2BE2; font-weight: bold;');
+
                 for (let i = 0; i < tempFotosToUpload.length; i++) {
                     const item = tempFotosToUpload[i];
                     if (item.file) {
+                        console.log(`%c[Upload] ⏳ Foto ${i + 1}/${tempFotosToUpload.length} — Comprimindo...`, 'color: #FFA500;');
                         showLoading(`Comprimindo foto ${i + 1} de ${tempFotosToUpload.length}...`);
                         const blob = await compressImage(item.file);
-                        showLoading(`Enviando foto ${i + 1} para Cloudinary...`);
+                        const kbAntes = (item.file.size / 1024).toFixed(0);
+                        const kbDepois = (blob.size / 1024).toFixed(0);
+                        console.log(`%c[Upload] ✂️  Foto ${i + 1} comprimida! ${kbAntes}KB → ${kbDepois}KB. Enviando para Cloudinary...`, 'color: #FFA500;');
+                        showLoading(`Enviando foto ${i + 1} de ${tempFotosToUpload.length} para Cloudinary...`);
                         const { url, publicId } = await uploadToCloudinary(blob);
                         fotosFinais.push(url);
                         fotosIdsFinais.push(publicId);
+                        console.log(`%c[Upload] ✅ Foto ${i + 1} salva! ID: ${publicId}`, 'color: #00C853;');
+                        console.log(`%c[Upload]    🔗 URL: ${url}`, 'color: #888;');
                     } else {
                         fotosFinais.push(item.url);
                         fotosIdsFinais.push(item.publicId || null);
+                        console.log(`%c[Upload] ♻️  Foto ${i + 1} — já hospedada, mantida.`, 'color: #888;');
                     }
                 }
+
+                console.log(`%c[Upload] 🎉 Todas as fotos processadas! Total: ${fotosFinais.length}`, 'color: #00C853; font-weight: bold;');
 
                 showLoading('Finalizando cadastro no banco...');
 
