@@ -1457,35 +1457,52 @@
             });
         };
 
-        const uploadToCloudinary = async (blob) => {
+        const uploadToCloudinary = async (file) => {
             const fd = new FormData();
-            fd.append('file', blob);
+            fd.append('file', file);
             fd.append('upload_preset', CLOUDINARY_PRESET);
+            fd.append('return_delete_token', '1');
             const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: 'POST', body: fd });
             const data = await res.json();
             if (data.error) throw new Error('Cloudinary: ' + data.error.message);
-            return { url: data.secure_url, publicId: data.public_id };
+            return { url: data.secure_url, publicId: data.public_id, deleteToken: data.delete_token || null };
         };
 
-        const deleteFromCloudinary = async (publicId) => {
-            if (!publicId) return;
+        const deleteFromCloudinary = async (publicId, deleteToken) => {
+            if (!publicId && !deleteToken) return;
             try {
-                const timestamp = Math.round(Date.now() / 1000);
-                const str = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
-                const msgBuf = new TextEncoder().encode(str);
-                const hashBuf = await crypto.subtle.digest('SHA-1', msgBuf);
-                const signature = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
-                const fd = new FormData();
-                fd.append('public_id', publicId);
-                fd.append('timestamp', timestamp);
-                fd.append('api_key', CLOUDINARY_API_KEY);
-                fd.append('signature', signature);
-                await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/destroy`, { method: 'POST', body: fd });
-                console.log('[Cloudinary] Imagem apagada:', publicId);
+                // Tenta primeiro via delete_token (CORS-friendly, sem precisar de API secret)
+                if (deleteToken) {
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/video/delete_by_token`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: deleteToken })
+                    });
+                    const data = await res.json();
+                    console.log('[Cloudinary] Resposta delete_by_token:', data);
+                    if (data.deleted === 'deleted') return;
+                }
+                // Fallback: assinatura SHA-1 via Admin API
+                if (publicId) {
+                    const timestamp = Math.round(Date.now() / 1000);
+                    const str = `public_id=${publicId}&timestamp=${timestamp}${CLOUDINARY_API_SECRET}`;
+                    const msgBuf = new TextEncoder().encode(str);
+                    const hashBuf = await crypto.subtle.digest('SHA-1', msgBuf);
+                    const signature = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2,'0')).join('');
+                    const fd = new FormData();
+                    fd.append('public_id', publicId);
+                    fd.append('timestamp', timestamp);
+                    fd.append('api_key', CLOUDINARY_API_KEY);
+                    fd.append('signature', signature);
+                    const res = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/destroy`, { method: 'POST', body: fd });
+                    const data = await res.json();
+                    console.log('[Cloudinary] Resposta destroy:', data);
+                }
             } catch(e) {
                 console.error('[Cloudinary] Erro ao deletar:', e);
             }
         };
+
 
         // --- CONTROLE DE SESSÃO VENDEDOR ---
         const sessaoVendedor = JSON.parse(localStorage.getItem('masabushi_vendedor'));
@@ -1996,6 +2013,7 @@
                 // Upload das fotos para Cloudinary com compressão automática
                 let fotosFinais = [];
                 let fotosIdsFinais = [];
+                let fotosDeleteTokensFinais = [];
 
                 const totalFotos = tempFotosToUpload.filter(i => i.file).length;
                 console.log(`%c[Upload] 🚀 Iniciando upload de ${totalFotos} foto(s) nova(s)...`, 'color: #8A2BE2; font-weight: bold;');
@@ -2006,14 +2024,16 @@
                         const kbOriginal = (item.file.size / 1024).toFixed(0);
                         console.log(`%c[Upload] ⏳ Foto ${i + 1}/${tempFotosToUpload.length} — Enviando original (${kbOriginal}KB) para Cloudinary...`, 'color: #FFA500;');
                         showLoading(`Enviando foto ${i + 1} de ${tempFotosToUpload.length} para Cloudinary...`);
-                        const { url, publicId } = await uploadToCloudinary(item.file);
+                        const { url, publicId, deleteToken } = await uploadToCloudinary(item.file);
                         fotosFinais.push(url);
                         fotosIdsFinais.push(publicId);
-                        console.log(`%c[Upload] ✅ Foto ${i + 1} salva! ID: ${publicId}`, 'color: #00C853;');
+                        fotosDeleteTokensFinais.push(deleteToken || null);
+                        console.log(`%c[Upload] ✅ Foto ${i + 1} salva! ID: ${publicId} | Token: ${deleteToken ? '✓' : '✗'}`, 'color: #00C853;');
                         console.log(`%c[Upload]    🔗 URL: ${url}`, 'color: #888;');
                     } else {
                         fotosFinais.push(item.url);
                         fotosIdsFinais.push(item.publicId || null);
+                        fotosDeleteTokensFinais.push(item.deleteToken || null);
                         console.log(`%c[Upload] ♻️  Foto ${i + 1} — já hospedada, mantida.`, 'color: #888;');
                     }
                 }
@@ -2035,6 +2055,7 @@
                     whatsapp,
                     fotos: fotosFinais,
                     fotosIds: fotosIdsFinais,
+                    fotosDeleteTokens: fotosDeleteTokensFinais,
                     vendedorId: selVData.id || selVendedorId,
                     nomeVendedor: selVData.acesso || selVData.nomeCompleto || 'LothWar Store',
                     fotoVendedor: selVData.foto || ''
@@ -2052,7 +2073,8 @@
                     for (const url of urlsRemovidas) {
                         const idx = (pBefore.fotos || []).indexOf(url);
                         const pid = (pBefore.fotosIds || [])[idx];
-                        await deleteFromCloudinary(pid);
+                        const token = (pBefore.fotosDeleteTokens || [])[idx];
+                        await deleteFromCloudinary(pid, token);
                     }
 
                     await updateDoc(doc(db, "produtos", editingProductId), produtoData);
@@ -2241,10 +2263,12 @@
                 console.log(`%c[Delete] 🗑️ Excluindo produto: ${p?.nome || id}`, 'color: #FF4444; font-weight: bold;');
                 if (p && p.fotosIds && p.fotosIds.length > 0) {
                     console.log(`%c[Delete] 📸 ${p.fotosIds.length} foto(s) para apagar do Cloudinary...`, 'color: #FFA500;');
-                    for (const pid of p.fotosIds) {
-                        if (pid) {
+                    for (let i = 0; i < p.fotosIds.length; i++) {
+                        const pid = p.fotosIds[i];
+                        const token = (p.fotosDeleteTokens || [])[i] || null;
+                        if (pid || token) {
                             console.log(`%c[Delete] ⏳ Apagando do Cloudinary: ${pid}`, 'color: #FFA500;');
-                            await deleteFromCloudinary(pid);
+                            await deleteFromCloudinary(pid, token);
                             console.log(`%c[Delete] ✅ Foto apagada do Cloudinary: ${pid}`, 'color: #00C853;');
                         }
                     }
