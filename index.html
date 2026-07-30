@@ -1522,6 +1522,15 @@
             return false;
         };
 
+        const getOptimizedImageUrl = (url, width = 600) => {
+            if (!url || typeof url !== 'string') return url;
+            if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+                if (url.includes('/f_auto,q_auto')) return url;
+                return url.replace('/upload/', `/upload/f_auto,q_auto,w_${width}/`);
+            }
+            return url;
+        };
+
 
 
         // --- CONTROLE DE SESSÃO VENDEDOR ---
@@ -2196,12 +2205,13 @@
                         const chunk = fotos.slice(c, c + 4);
                         fotosHtml += `<div class="img-grid-chunk" data-count="${chunk.length}">`;
                         for (let i = 0; i < chunk.length; i++) {
+                            const optUrl = getOptimizedImageUrl(chunk[i], 500);
                             fotosHtml += `
                                 <div class="img-container">
-                                    <img src="${chunk[i]}" loading="lazy" onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; z-index: 0;">
+                                    <img src="${optUrl}" loading="lazy" onload="if(this.naturalWidth < 150 && (this.src.includes('ibb.co') || this.src.includes('imgbb.com'))) this.parentElement.style.display='none';" onerror="this.parentElement.style.display='none';" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.3; z-index: 0;">
                                     <div style="position: absolute; inset: 0; background-color: rgba(0,0,0,0.4); z-index: 1;"></div>
                                     <i class="fa-solid fa-image-slash" style="position:absolute; z-index:1; font-size: 30px; color:#555;"></i>
-                                    <img src="${chunk[i]}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
+                                    <img src="${optUrl}" loading="lazy" alt="Foto ${c + i + 1}" draggable="true" onerror="this.style.display='none'" style="cursor: grab; position: relative; z-index: 2; border-radius: inherit;">
                                 </div>
                             `;
                         }
