@@ -14,6 +14,8 @@
     <link rel="preconnect" href="https://i.ibb.co">
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- JSZip para empacotar as fotos no "Exportar Anúncio" -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         :root {
             --bg-body: #161A23;
@@ -1406,6 +1408,21 @@
         </div>
     </div>
 
+    <!-- MODAL DE EXPORTAR ANÚNCIO (OLX / Facebook) -->
+    <div id="exportOverlay" class="modal-overlay hidden" onclick="fecharExportarAnuncio()"></div>
+    <div id="exportModal" class="modal hidden" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
+        <h3 class="settings-title">Exportar Anúncio</h3>
+        <div class="settings-group">
+            <label>Texto pronto pra colar (título + preço + descrição)</label>
+            <textarea id="exportTextArea" class="settings-input" style="min-height: 220px; resize: vertical; font-family: inherit;"></textarea>
+        </div>
+        <div class="settings-actions">
+            <button class="btn-settings-save" id="btnCopiarExport" onclick="copiarTextoExport()">Copiar Texto</button>
+            <button class="btn-settings-cancel" id="btnBaixarFotosExport" onclick="baixarFotosExport()">Baixar Fotos (.zip)</button>
+        </div>
+        <button class="btn-settings-cancel" style="width: 100%; margin-top: 10px;" onclick="fecharExportarAnuncio()">Fechar</button>
+    </div>
+
     <!-- Loading -->
     <div class="loading-overlay" id="loading">
         <div class="spinner"></div>
@@ -2224,12 +2241,9 @@
                             ${p.vendido ? 'Desmarcar' : 'Vendido'}
                         </button>
                     </div>
-                    <div class="card-actions-row" style="margin-top: 4px; display: flex; gap: 8px;">
-                        <button class="btn btn-purple" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;" onclick="copiarTitulo('${p.id}', this)">
-                            <i class="fa-regular fa-copy"></i> Título
-                        </button>
-                        <button class="btn btn-purple" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;" onclick="copiarDescricao('${p.id}', this)">
-                            <i class="fa-regular fa-copy"></i> Descrição
+                    <div class="card-actions-row" style="margin-top: 4px;">
+                        <button class="btn btn-purple" style="flex: 1; padding: 10px 0; font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap;" onclick="abrirExportarAnuncio('${p.id}')">
+                            <i class="fa-solid fa-file-export"></i> Exportar Anúncio
                         </button>
                     </div>
                 </div>
@@ -2315,52 +2329,80 @@
             try { await updateDoc(doc(db, "produtos", id), { vendido: !estadoAtual }); } catch (e) { }
         }
 
-        window.copiarTitulo = (id, btn) => {
+        // --- EXPORTAR ANÚNCIO (OLX / Facebook) ---
+        let exportProdutoAtual = null;
+
+        window.abrirExportarAnuncio = (id) => {
             const p = produtosGlobais.find(x => x.id === id);
-            if (!p || !p.nome) return alert('Este anúncio não possui título.');
+            if (!p) return;
+            exportProdutoAtual = p;
 
-            navigator.clipboard.writeText(p.nome).then(() => {
-                const originalHTML = btn.innerHTML;
-                const originalBg = btn.style.backgroundColor;
-                const originalColor = btn.style.color;
+            const precoFormatado = Number(p.valor || 0).toFixed(2).replace('.', ',');
+            const texto = `${p.nome || ''}\n\nValor: R$ ${precoFormatado}\n\n${p.desc || ''}`;
 
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
-                btn.style.backgroundColor = 'var(--accent-green)';
-                btn.style.color = 'black';
+            document.getElementById('exportTextArea').value = texto;
+            document.getElementById('exportOverlay').classList.remove('hidden');
+            document.getElementById('exportModal').classList.remove('hidden');
+        };
 
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.style.backgroundColor = originalBg;
-                    btn.style.color = originalColor;
-                }, 1500);
+        window.fecharExportarAnuncio = () => {
+            document.getElementById('exportOverlay').classList.add('hidden');
+            document.getElementById('exportModal').classList.add('hidden');
+        };
+
+        window.copiarTextoExport = () => {
+            const texto = document.getElementById('exportTextArea').value;
+            const btn = document.getElementById('btnCopiarExport');
+            navigator.clipboard.writeText(texto).then(() => {
+                const original = btn.innerText;
+                btn.innerText = 'Copiado!';
+                setTimeout(() => btn.innerText = original, 1500);
             }).catch(e => {
                 console.error("Erro ao copiar:", e);
-                alert("Falha ao copiar o título.");
+                alert("Falha ao copiar o texto.");
             });
         };
 
-        window.copiarDescricao = (id, btn) => {
-            const p = produtosGlobais.find(x => x.id === id);
-            if (!p || !p.desc) return alert('Este anúncio não possui descrição.');
+        window.baixarFotosExport = async () => {
+            const fotos = exportProdutoAtual ? (exportProdutoAtual.fotos || []) : [];
+            if (fotos.length === 0) return alert('Este anúncio não possui fotos.');
 
-            navigator.clipboard.writeText(p.desc).then(() => {
-                const originalHTML = btn.innerHTML;
-                const originalBg = btn.style.backgroundColor;
-                const originalColor = btn.style.color;
+            const btn = document.getElementById('btnBaixarFotosExport');
+            const originalText = btn.innerText;
+            btn.disabled = true;
 
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> Copiado!';
-                btn.style.backgroundColor = 'var(--accent-green)';
-                btn.style.color = 'black';
+            try {
+                const zip = new JSZip();
+                for (let i = 0; i < fotos.length; i++) {
+                    btn.innerText = `Baixando ${i + 1}/${fotos.length}...`;
+                    const url = fotos[i].includes('/upload/') ? fotos[i].replace('/upload/', '/upload/fl_attachment/') : fotos[i];
+                    const res = await fetch(url);
+                    if (!res.ok) throw new Error(`Falha ao baixar foto ${i + 1}`);
+                    const blob = await res.blob();
+                    const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+                    zip.file(`foto-${i + 1}.${ext}`, blob);
+                }
 
-                setTimeout(() => {
-                    btn.innerHTML = originalHTML;
-                    btn.style.backgroundColor = originalBg;
-                    btn.style.color = originalColor;
-                }, 1500);
-            }).catch(e => {
-                console.error("Erro ao copiar:", e);
-                alert("Falha ao copiar a descrição.");
-            });
+                btn.innerText = 'Compactando...';
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+                const nomeArquivo = (exportProdutoAtual.nome || 'anuncio')
+                    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+                    .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'anuncio';
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(zipBlob);
+                a.download = `${nomeArquivo}-fotos.zip`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+            } catch (e) {
+                console.error(e);
+                alert('Erro ao baixar as fotos: ' + e.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
         };
     </script>
 
