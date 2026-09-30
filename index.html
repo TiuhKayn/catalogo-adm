@@ -1634,24 +1634,35 @@
             }, duration);
         };
 
+        // Overlay e modal como elementos IRMÃOS (mesmo padrão do resto do arquivo:
+        // aprovarOverlay/aprovarModal, configOverlay/configModal). Colocar o .modal
+        // DENTRO do .modal-overlay quebra quando outro modal já está aberto: o
+        // backdrop-filter do overlay cria um novo contexto de empilhamento, então o
+        // z-index do .modal filho passa a valer só dentro desse contexto — e um
+        // .modal irmão (ex: aprovarModal) com o mesmo z-index, já aberto por fora,
+        // fica na frente e esconde o modal de confirmação por trás dele.
         const confirmOverlay = document.createElement('div');
         confirmOverlay.className = 'modal-overlay hidden';
-        confirmOverlay.innerHTML = `
-            <div class="modal" style="max-width: 380px; text-align: center;">
-                <div class="confirm-icon" id="confirmIcon"><i class="fa-solid fa-circle-question"></i></div>
-                <p class="confirm-message" id="confirmMessage"></p>
-                <div class="confirm-actions">
-                    <button class="btn-settings-cancel" id="confirmBtnCancel">Cancelar</button>
-                    <button class="btn-confirm-yes" id="confirmBtnYes">Confirmar</button>
-                </div>
-            </div>
-        `;
         document.body.appendChild(confirmOverlay);
 
-        const confirmMessageEl = confirmOverlay.querySelector('#confirmMessage');
-        const confirmIconEl = confirmOverlay.querySelector('#confirmIcon');
-        const confirmBtnYes = confirmOverlay.querySelector('#confirmBtnYes');
-        const confirmBtnCancel = confirmOverlay.querySelector('#confirmBtnCancel');
+        const confirmModal = document.createElement('div');
+        confirmModal.className = 'modal hidden';
+        confirmModal.style.maxWidth = '380px';
+        confirmModal.style.textAlign = 'center';
+        confirmModal.innerHTML = `
+            <div class="confirm-icon" id="confirmIcon"><i class="fa-solid fa-circle-question"></i></div>
+            <p class="confirm-message" id="confirmMessage"></p>
+            <div class="confirm-actions">
+                <button class="btn-settings-cancel" id="confirmBtnCancel">Cancelar</button>
+                <button class="btn-confirm-yes" id="confirmBtnYes">Confirmar</button>
+            </div>
+        `;
+        document.body.appendChild(confirmModal);
+
+        const confirmMessageEl = confirmModal.querySelector('#confirmMessage');
+        const confirmIconEl = confirmModal.querySelector('#confirmIcon');
+        const confirmBtnYes = confirmModal.querySelector('#confirmBtnYes');
+        const confirmBtnCancel = confirmModal.querySelector('#confirmBtnCancel');
 
         window.showConfirm = (message, { danger = false, confirmText = 'Confirmar' } = {}) => {
             return new Promise((resolve) => {
@@ -1661,17 +1672,21 @@
                 confirmIconEl.innerHTML = danger ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-question"></i>';
                 confirmBtnYes.className = 'btn-confirm-yes' + (danger ? ' danger' : '');
                 confirmOverlay.classList.remove('hidden');
+                confirmModal.classList.remove('hidden');
 
                 const cleanup = (result) => {
                     confirmOverlay.classList.add('hidden');
+                    confirmModal.classList.add('hidden');
                     confirmBtnYes.removeEventListener('click', onYes);
                     confirmBtnCancel.removeEventListener('click', onCancel);
+                    confirmOverlay.removeEventListener('click', onCancel);
                     resolve(result);
                 };
                 const onYes = () => cleanup(true);
                 const onCancel = () => cleanup(false);
                 confirmBtnYes.addEventListener('click', onYes);
                 confirmBtnCancel.addEventListener('click', onCancel);
+                confirmOverlay.addEventListener('click', onCancel);
             });
         };
 
