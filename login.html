@@ -12,6 +12,8 @@
             --bg-card: #12161F;
             --accent-purple: #8B5CF6;
             --accent-blue: #3FC8FF;
+            --accent-green: #35D488;
+            --accent-red: #FF6A3D;
             --text-main: #EEF1F6;
             --text-muted: #8A93A6;
             --border-color: #2E3646;
@@ -211,6 +213,56 @@
             z-index: 10;
         }
 
+        /* TOASTS — substituem o alert() nativo do navegador */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            pointer-events: none;
+            width: 90%;
+            max-width: 420px;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 14px 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 14px;
+            line-height: 1.4;
+            pointer-events: auto;
+            animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toast.hide { animation: toastOut 0.25s ease forwards; }
+        .toast i { font-size: 18px; flex-shrink: 0; }
+        .toast.success { border-left-color: var(--accent-green); }
+        .toast.success i { color: var(--accent-green); }
+        .toast.error { border-left-color: var(--accent-red); }
+        .toast.error i { color: var(--accent-red); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
         /* RESPONSIVIDADE MOBILE (Login) */
         @media (max-width: 600px) {
             .login-container {
@@ -357,6 +409,24 @@
         const loginView = document.getElementById('login-view');
         const registerView = document.getElementById('register-view');
         const loading = document.getElementById('loadingOverlay');
+
+        // --- TOAST (substitui alert() nativo) ---
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        document.body.appendChild(toastContainer);
+
+        const TOAST_ICONS = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+
+        window.showToast = (message, type = 'info', duration = 4500) => {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fa-solid ${TOAST_ICONS[type] || TOAST_ICONS.info}"></i><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 250);
+            }, duration);
+        };
 
         // --- UTILITÁRIOS DE UI ---
         window.togglePasswordVisibility = (inputId, iconElement) => {
@@ -538,7 +608,7 @@
                 // Deslogar imediatamente para que ele tenha que verificar o e-mail antes de entrar
                 await signOut(auth);
 
-                alert("Cadastro realizado com sucesso! Sua conta foi enviada para análise do Administrador. Você receberá um e-mail de verificação, mas só poderá entrar no painel quando for aprovado.");
+                showToast("Cadastro realizado com sucesso! Sua conta foi enviada para análise do Administrador. Você receberá um e-mail de verificação, mas só poderá entrar no painel quando for aprovado.", 'success');
                 
                 toggleAuthView(false); // Volta para tela de login
                 registerForm.reset();

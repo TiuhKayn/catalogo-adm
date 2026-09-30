@@ -721,6 +721,102 @@
             background-color: rgba(255, 255, 255, 0.05);
         }
 
+        /* TOASTS — substituem o alert() nativo do navegador */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 12px;
+            padding: 14px 20px;
+            min-width: 260px;
+            max-width: 90vw;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: var(--text-main);
+            font-weight: 600;
+            font-size: 15px;
+            pointer-events: auto;
+            animation: toastIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .toast.hide { animation: toastOut 0.25s ease forwards; }
+        .toast i { font-size: 18px; }
+        .toast.success { border-left-color: var(--accent-green); }
+        .toast.success i { color: var(--accent-green); }
+        .toast.error { border-left-color: var(--accent-red); }
+        .toast.error i { color: var(--accent-red); }
+        .toast.info { border-left-color: var(--accent-blue); }
+        .toast.info i { color: var(--accent-blue); }
+
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+
+        /* CONFIRM MODAL — substitui o confirm() nativo do navegador */
+        .confirm-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            font-size: 24px;
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--accent-purple);
+        }
+        .confirm-icon.danger {
+            background: rgba(255, 106, 61, 0.15);
+            color: var(--accent-red);
+        }
+        .confirm-message {
+            text-align: center;
+            font-size: 16px;
+            color: var(--text-main);
+            line-height: 1.5;
+            margin: 0;
+        }
+        .confirm-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .btn-confirm-yes {
+            background: linear-gradient(135deg, var(--accent-purple) 0%, var(--accent-purple-deep) 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 14px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-confirm-yes:hover { transform: translateY(-2px); filter: brightness(1.1); }
+        .btn-confirm-yes.danger {
+            background: linear-gradient(135deg, var(--accent-red) 0%, #C0392B 100%);
+        }
+
         .loading-overlay.active {
             opacity: 1;
             pointer-events: auto;
@@ -1520,7 +1616,64 @@
             return url;
         };
 
+        // --- UI FEEDBACK: Toast e Confirm customizados (substituem alert()/confirm() nativos) ---
+        const toastContainer = document.createElement('div');
+        toastContainer.id = 'toastContainer';
+        document.body.appendChild(toastContainer);
 
+        const TOAST_ICONS = { success: 'fa-circle-check', error: 'fa-circle-exclamation', info: 'fa-circle-info' };
+
+        window.showToast = (message, type = 'info', duration = 3200) => {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<i class="fa-solid ${TOAST_ICONS[type] || TOAST_ICONS.info}"></i><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => toast.remove(), 250);
+            }, duration);
+        };
+
+        const confirmOverlay = document.createElement('div');
+        confirmOverlay.className = 'modal-overlay hidden';
+        confirmOverlay.innerHTML = `
+            <div class="modal" style="max-width: 380px; text-align: center;">
+                <div class="confirm-icon" id="confirmIcon"><i class="fa-solid fa-circle-question"></i></div>
+                <p class="confirm-message" id="confirmMessage"></p>
+                <div class="confirm-actions">
+                    <button class="btn-settings-cancel" id="confirmBtnCancel">Cancelar</button>
+                    <button class="btn-confirm-yes" id="confirmBtnYes">Confirmar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(confirmOverlay);
+
+        const confirmMessageEl = confirmOverlay.querySelector('#confirmMessage');
+        const confirmIconEl = confirmOverlay.querySelector('#confirmIcon');
+        const confirmBtnYes = confirmOverlay.querySelector('#confirmBtnYes');
+        const confirmBtnCancel = confirmOverlay.querySelector('#confirmBtnCancel');
+
+        window.showConfirm = (message, { danger = false, confirmText = 'Confirmar' } = {}) => {
+            return new Promise((resolve) => {
+                confirmMessageEl.innerText = message;
+                confirmBtnYes.innerText = confirmText;
+                confirmIconEl.className = 'confirm-icon' + (danger ? ' danger' : '');
+                confirmIconEl.innerHTML = danger ? '<i class="fa-solid fa-triangle-exclamation"></i>' : '<i class="fa-solid fa-circle-question"></i>';
+                confirmBtnYes.className = 'btn-confirm-yes' + (danger ? ' danger' : '');
+                confirmOverlay.classList.remove('hidden');
+
+                const cleanup = (result) => {
+                    confirmOverlay.classList.add('hidden');
+                    confirmBtnYes.removeEventListener('click', onYes);
+                    confirmBtnCancel.removeEventListener('click', onCancel);
+                    resolve(result);
+                };
+                const onYes = () => cleanup(true);
+                const onCancel = () => cleanup(false);
+                confirmBtnYes.addEventListener('click', onYes);
+                confirmBtnCancel.addEventListener('click', onCancel);
+            });
+        };
 
         // --- CONTROLE DE SESSÃO VENDEDOR ---
         const sessaoVendedor = JSON.parse(localStorage.getItem('masabushi_vendedor'));
@@ -1538,8 +1691,8 @@
             }
         });
 
-        window.logoutVendedor = () => {
-            if (confirm('Deseja realmente sair do painel?')) {
+        window.logoutVendedor = async () => {
+            if (await showConfirm('Deseja realmente sair do painel?')) {
                 signOut(auth).finally(() => {
                     localStorage.removeItem('masabushi_vendedor');
                     window.location.href = 'login.html';
@@ -1671,31 +1824,31 @@
         };
 
         window.aprovarConta = async (id) => {
-            if (!confirm('Deseja realmente aprovar esta conta?')) return;
+            if (!(await showConfirm('Deseja realmente aprovar esta conta?'))) return;
             try {
                 showLoading('Aprovando...');
                 await updateDoc(doc(db, "vendedores", id), { status: 'aprovado' });
-                alert('Conta aprovada com sucesso!');
+                showToast('Conta aprovada com sucesso!', 'success');
                 buscarVendedores();
                 abrirAprovacaoContas();
             } catch(e) {
                 console.error(e);
-                alert('Erro ao aprovar conta.');
+                showToast('Erro ao aprovar conta.', 'error');
             } finally {
                 hideLoading();
             }
         };
 
         window.rejeitarConta = async (id) => {
-            if (!confirm('Deseja realmente rejeitar (excluir) esta conta?')) return;
+            if (!(await showConfirm('Deseja realmente rejeitar (excluir) esta conta?', { danger: true, confirmText: 'Rejeitar' }))) return;
             try {
                 showLoading('Rejeitando...');
                 await deleteDoc(doc(db, "vendedores", id));
-                alert('Conta rejeitada com sucesso!');
+                showToast('Conta rejeitada com sucesso!', 'success');
                 abrirAprovacaoContas();
             } catch(e) {
                 console.error(e);
-                alert('Erro ao rejeitar conta.');
+                showToast('Erro ao rejeitar conta.', 'error');
             } finally {
                 hideLoading();
             }
@@ -1763,10 +1916,10 @@
                 }, { merge: true });
 
                 fecharConfiguracoes();
-                alert('Configurações salvas com sucesso!');
+                showToast('Configurações salvas com sucesso!', 'success');
             } catch (e) {
                 console.error(e);
-                alert("Erro ao salvar configuração!");
+                showToast('Erro ao salvar configuração!', 'error');
             }
 
             btn.innerText = "Salvar Alterações";
@@ -1915,7 +2068,7 @@
         window.handleFotoUploadSelect = (e) => {
             const files = Array.from(e.target.files);
             if (tempFotosToUpload.length + files.length > 10) {
-                return alert('Você pode adicionar no máximo 10 fotos.');
+                return showToast('Você pode adicionar no máximo 10 fotos.', 'error');
             }
             const newFotos = files.map(f => ({ file: f, url: URL.createObjectURL(f) }));
             tempFotosToUpload = tempFotosToUpload.concat(newFotos);
@@ -2029,7 +2182,7 @@
             const whatsapp = document.getElementById('cadWhatsapp').value.trim();
 
             if (!nome || !valor || !categoria || !condicao) {
-                return alert('Por favor, preencha Título, Preço, Categoria e Condição.');
+                return showToast('Por favor, preencha Título, Preço, Categoria e Condição.', 'error');
             }
 
             if (btnSubmit) {
@@ -2103,20 +2256,20 @@
                     }
 
                     await updateDoc(doc(db, "produtos", editingProductId), produtoData);
-                    alert('Produto Atualizado com Sucesso!');
+                    showToast('Produto Atualizado com Sucesso!', 'success');
                 } else {
                     produtoData.data = new Date().toISOString();
                     produtoData.promocao = false;
                     produtoData.vendido = false;
                     await addDoc(collection(db, "produtos"), produtoData);
-                    alert('Produto Publicado com Sucesso!');
+                    showToast('Produto Publicado com Sucesso!', 'success');
                 }
 
                 limparFormulario();
                 fecharViewCriacao();
             } catch (e) {
                 console.error("Erro interno FireBase:", e);
-                alert('Erro ao salvar no banco ou Storage: ' + e.message);
+                showToast('Erro ao salvar no banco ou Storage: ' + e.message, 'error');
             } finally {
                 hideLoading();
                 if (btnSubmit) {
@@ -2278,7 +2431,7 @@
         }
 
         window.deletarProduto = async (id) => {
-            if (!confirm('Certeza que deseja excluir este produto e apagar as fotos definitivamente?')) return;
+            if (!(await showConfirm('Certeza que deseja excluir este produto e apagar as fotos definitivamente?', { danger: true, confirmText: 'Excluir' }))) return;
             showLoading('Excluindo...');
             try {
                 const p = produtosGlobais.find(x => x.id === id);
@@ -2303,7 +2456,7 @@
                 await deleteDoc(doc(db, "produtos", id));
                 console.log(`%c[Delete] 🎉 Produto removido do banco com sucesso!`, 'color: #00C853; font-weight: bold;');
             } catch (e) {
-                alert('Erro ao excluir'); console.error(e);
+                showToast('Erro ao excluir', 'error'); console.error(e);
             }
             hideLoading();
         }
@@ -2323,7 +2476,7 @@
                     if (pct === null) return; // User cancelled
                     const numPct = parseInt(pct, 10);
                     if (isNaN(numPct) || numPct <= 0 || numPct > 100) {
-                        return alert("Porcentagem inválida.");
+                        return showToast('Porcentagem inválida.', 'error');
                     }
 
                     const dias = prompt("Durará quantos dias? (Deixe em branco para tempo indeterminado)");
@@ -2383,13 +2536,13 @@
                 setTimeout(() => btn.innerText = original, 1500);
             }).catch(e => {
                 console.error("Erro ao copiar:", e);
-                alert("Falha ao copiar o texto.");
+                showToast('Falha ao copiar o texto.', 'error');
             });
         };
 
         window.baixarFotosExport = async () => {
             const fotos = exportProdutoAtual ? (exportProdutoAtual.fotos || []) : [];
-            if (fotos.length === 0) return alert('Este anúncio não possui fotos.');
+            if (fotos.length === 0) return showToast('Este anúncio não possui fotos.', 'error');
 
             const btn = document.getElementById('btnBaixarFotosExport');
             const originalText = btn.innerText;
@@ -2422,7 +2575,7 @@
                 setTimeout(() => URL.revokeObjectURL(a.href), 5000);
             } catch (e) {
                 console.error(e);
-                alert('Erro ao baixar as fotos: ' + e.message);
+                showToast('Erro ao baixar as fotos: ' + e.message, 'error');
             } finally {
                 btn.disabled = false;
                 btn.innerText = originalText;
