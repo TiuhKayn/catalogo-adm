@@ -1551,11 +1551,19 @@
     <div id="exportModal" class="modal hidden" style="max-width: 480px; max-height: 85vh; overflow-y: auto;">
         <h3 class="settings-title">Exportar Anúncio</h3>
         <div class="settings-group">
+            <label>Copiar só um campo</label>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn-settings-cancel" style="flex: 1; padding: 10px 4px; font-size: 13px;" onclick="copiarCampoExport('titulo')">Título</button>
+                <button class="btn-settings-cancel" style="flex: 1; padding: 10px 4px; font-size: 13px;" onclick="copiarCampoExport('preco')">Preço</button>
+                <button class="btn-settings-cancel" style="flex: 1; padding: 10px 4px; font-size: 13px;" onclick="copiarCampoExport('desc')">Descrição</button>
+            </div>
+        </div>
+        <div class="settings-group">
             <label>Texto pronto pra colar (título + preço + descrição)</label>
             <textarea id="exportTextArea" class="settings-input" style="min-height: 220px; resize: vertical; font-family: inherit;"></textarea>
         </div>
         <div class="settings-actions">
-            <button class="btn-settings-save" id="btnCopiarExport" onclick="copiarTextoExport()">Copiar Texto</button>
+            <button class="btn-settings-save" id="btnCopiarExport" onclick="copiarTextoExport()">Copiar Tudo</button>
             <button class="btn-settings-cancel" id="btnBaixarFotosExport" onclick="baixarFotosExport()">Baixar Fotos (.zip)</button>
         </div>
         <button class="btn-settings-cancel" style="width: 100%; margin-top: 10px;" onclick="fecharExportarAnuncio()">Fechar</button>
@@ -2540,6 +2548,22 @@
         window.fecharExportarAnuncio = () => {
             document.getElementById('exportOverlay').classList.add('hidden');
             document.getElementById('exportModal').classList.add('hidden');
+        };
+
+        window.copiarCampoExport = (campo) => {
+            if (!exportProdutoAtual) return;
+            const p = exportProdutoAtual;
+            let texto = '';
+            if (campo === 'titulo') texto = p.nome || '';
+            else if (campo === 'preco') texto = `R$ ${Number(p.valor || 0).toFixed(2).replace('.', ',')}`;
+            else if (campo === 'desc') texto = p.desc || '';
+
+            navigator.clipboard.writeText(texto).then(() => {
+                showToast('Copiado!', 'success');
+            }).catch(e => {
+                console.error("Erro ao copiar:", e);
+                showToast('Falha ao copiar o texto.', 'error');
+            });
         };
 
         window.copiarTextoExport = () => {
